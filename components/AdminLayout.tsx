@@ -61,6 +61,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       current: pathname === '/admin/users'
     },
     {
+      name: '用户设置',
+      href: '/admin/user-settings',
+      icon: Settings,
+      current: pathname === '/admin/user-settings'
+    },
+    {
       name: '数据库管理',
       href: '/admin/database',
       icon: Database,

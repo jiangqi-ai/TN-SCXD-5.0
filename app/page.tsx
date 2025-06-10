@@ -82,6 +82,12 @@ export default function HomePage() {
             >
               管理后台演示
             </Link>
+            <Link
+              href="/init"
+              className="bg-red-500 hover:bg-red-600 text-white px-8 py-4 rounded-lg text-lg font-semibold transition-colors"
+            >
+              系统初始化
+            </Link>
           </div>
         </div>
       </section>

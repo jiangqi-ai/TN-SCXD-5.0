@@ -137,6 +137,7 @@ export default function AdminSettings() {
   const groupSettingsByCategory = (): SettingCategory[] => {
     const categories = {
       general: { name: '常规设置', description: '网站基本信息配置', icon: Globe, settings: [] as Setting[] },
+      user: { name: '用户设置', description: '用户注册和认证配置', icon: Settings, settings: [] as Setting[] },
       database: { name: '数据库配置', description: '数据库连接和性能参数', icon: Database, settings: [] as Setting[] },
       contact: { name: '联系信息', description: '客服联系方式配置', icon: Mail, settings: [] as Setting[] },
       shipping: { name: '配送设置', description: '配送费用和规则配置', icon: Truck, settings: [] as Setting[] },
@@ -158,6 +159,30 @@ export default function AdminSettings() {
 
   const renderSettingValue = (setting: Setting) => {
     if (editingId === setting.id) {
+      if (setting.data_type === 'boolean') {
+        return (
+          <div className="flex items-center space-x-2">
+            <select
+              defaultValue={setting.value}
+              className="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              onChange={(e) => {
+                handleUpdateSetting(setting.id, { value: e.target.value })
+              }}
+              autoFocus
+            >
+              <option value="true">是</option>
+              <option value="false">否</option>
+            </select>
+            <button
+              onClick={() => setEditingId(null)}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              取消
+            </button>
+          </div>
+        )
+      }
+
       return (
         <div className="flex items-center space-x-2">
           <input
@@ -185,18 +210,59 @@ export default function AdminSettings() {
           >
             <Save className="h-4 w-4" />
           </button>
+          <button
+            onClick={() => setEditingId(null)}
+            className="text-gray-600 hover:text-gray-900"
+          >
+            取消
+          </button>
         </div>
       )
     }
 
+    // 对于布尔值，提供快速切换功能
+    if (setting.data_type === 'boolean') {
+      return (
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <span className={`text-sm font-medium ${setting.value === 'true' ? 'text-green-600' : 'text-red-600'}`}>
+              {setting.value === 'true' ? '已启用' : '已禁用'}
+            </span>
+            <button
+              onClick={() => handleUpdateSetting(setting.id, { value: setting.value === 'true' ? 'false' : 'true' })}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                setting.value === 'true' ? 'bg-blue-600' : 'bg-gray-200'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  setting.value === 'true' ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setEditingId(setting.id)}
+              className="text-blue-600 hover:text-blue-900"
+            >
+              <Edit className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => handleDeleteSetting(setting.id)}
+              className="text-red-600 hover:text-red-900"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )
+    }
+
+    // 对于其他类型，显示值和编辑按钮
     return (
       <div className="flex items-center justify-between">
-        <span className="text-gray-900">
-          {setting.data_type === 'boolean' 
-            ? (setting.value === 'true' ? '是' : '否')
-            : setting.value
-          }
-        </span>
+        <span className="text-gray-900">{setting.value}</span>
         <div className="flex items-center space-x-2">
           <button
             onClick={() => setEditingId(setting.id)}
