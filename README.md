@@ -1,183 +1,136 @@
-# 攀岩装备在线下单系统
+# 攀岩装备商城 - TN-SCXD-5.0
 
-一个基于 Next.js + Supabase 构建的现代化攀岩装备电商平台，支持产品展示、在线下单、订单管理和后台管理功能。
+🏔️ 现代化攀岩装备电商平台，基于 Next.js 14 构建，提供完整的电商解决方案。
 
-## 功能特性
+[![构建状态](https://img.shields.io/badge/build-passing-brightgreen)](.) 
+[![版本](https://img.shields.io/badge/version-1.0.0-blue)](.)
+[![Next.js](https://img.shields.io/badge/Next.js-14-black)](https://nextjs.org/)
+[![Supabase](https://img.shields.io/badge/Supabase-enabled-green)](https://supabase.com/)
 
-### 🛍️ 产品中心
-- 产品分类浏览
-- 产品详情展示
-- 购物车功能
-- 实时库存管理
+## ✨ 功能特性
 
-### 📋 订单中心
-- 订单创建与支付
-- 订单状态跟踪
-- 订单历史查看
-- 配送地址管理
+### 🛍️ 用户端
+- **产品浏览** - 专业攀岩装备分类展示
+- **智能购物车** - 实时更新的购物体验
+- **订单管理** - 完整的订单流程追踪
+- **用户系统** - 安全注册登录机制
+- **响应式设计** - 完美适配所有设备
 
-### ⚙️ 管理后台
-- 产品管理（增删改查）
-- 订单管理
-- 用户管理
-- 数据统计
+### 🛡️ 管理端
+- **用户注册控制** - 灵活的注册策略管理
+- **产品管理** - 完整的商品CRUD操作
+- **订单处理** - 高效的订单状态管理
+- **系统设置** - 可配置的平台参数
+- **权限控制** - 基于角色的访问管理
 
-### 🔐 用户系统
-- 邮箱注册/登录
-- 用户资料管理
-- 角色权限控制
+## 🚀 快速开始
 
-## 技术栈
+### 📋 环境要求
+- Node.js ≥ 18.17.0
+- npm 或 yarn
 
-- **前端**: Next.js 14, React, TypeScript, Tailwind CSS
-- **后端**: Supabase (PostgreSQL + Auth + Real-time)
-- **状态管理**: Zustand
-- **表单处理**: React Hook Form
-- **UI组件**: Lucide React Icons
-- **通知**: React Hot Toast
-- **部署**: Vercel
+### ⚡ 一键部署
 
-## 快速开始
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new)
 
-### 1. 克隆项目
+### 🔧 本地开发
+
 ```bash
-git clone <your-repo-url>
-cd climbing-gear-store
-```
+# 1. 克隆项目
+git clone [your-repo-url]
+cd TN-SCXD-5.0
 
-### 2. 安装依赖
-```bash
+# 2. 安装依赖
 npm install
-```
 
-### 3. 配置环境变量
-复制 `env.example` 为 `.env.local` 并填入 Supabase 配置：
-
-```bash
+# 3. 环境配置
 cp env.example .env.local
-```
+# 编辑 .env.local 配置 Supabase 连接
 
-在 `.env.local` 中填入：
-```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
-NEXT_PUBLIC_SITE_URL=http://localhost:3000
-```
-
-### 4. 设置 Supabase 数据库
-
-在 Supabase 控制台的 SQL 编辑器中执行 `database/schema.sql` 文件中的 SQL 语句来创建数据表。
-
-### 5. 启动开发服务器
-```bash
+# 4. 启动开发服务器
 npm run dev
 ```
 
-访问 [http://localhost:3000](http://localhost:3000) 查看应用。
+访问 [http://localhost:3000](http://localhost:3000) 🎉
 
-## Supabase 配置
+### 🗄️ 数据库设置
 
-### 1. 创建 Supabase 项目
-1. 访问 [supabase.com](https://supabase.com)
-2. 创建新项目
-3. 获取项目 URL 和 API Keys
+在 Supabase 中执行以下 SQL 文件：
+1. `database/enhanced_schema.sql`
+2. `scripts/init-user-settings.sql`
 
-### 2. 配置认证
-在 Supabase 控制台 -> Authentication -> Settings 中：
-- 启用邮箱确认
-- 配置重定向 URLs
+### 👨‍💼 系统初始化
 
-### 3. 设置 RLS (Row Level Security)
-数据库表已配置行级安全策略，确保数据安全。
+访问 `/init` 页面完成系统初始化和管理员账户创建。
 
-## 部署到 Vercel
+## 🏗️ 技术栈
 
-### 1. 连接 GitHub
-将代码推送到 GitHub 仓库。
+- **Frontend**: Next.js 14, React 18, TypeScript
+- **UI**: Tailwind CSS, Lucide Icons
+- **State**: Zustand
+- **Backend**: Supabase (PostgreSQL + Auth)
+- **Deploy**: Vercel
 
-### 2. 导入到 Vercel
-1. 访问 [vercel.com](https://vercel.com)
-2. 导入 GitHub 仓库
-3. 配置环境变量
-4. 部署
-
-### 3. 配置环境变量
-在 Vercel 项目设置中添加：
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
-- `NEXT_PUBLIC_SITE_URL` (你的 Vercel 域名)
-
-## 项目结构
+## 📁 项目结构
 
 ```
-├── app/                    # Next.js App Router
-│   ├── auth/              # 认证页面
-│   ├── products/          # 产品相关页面
-│   ├── orders/            # 订单相关页面
-│   ├── admin/             # 管理后台
-│   └── cart/              # 购物车页面
-├── components/            # 可复用组件
-├── lib/                   # 工具库
-│   └── supabase.ts       # Supabase 配置
-├── store/                 # 状态管理
-├── database/              # 数据库脚本
-└── public/               # 静态资源
+TN-SCXD-5.0/
+├── 📱 app/                 # Next.js App Router
+│   ├── 👨‍💼 admin/          # 管理后台
+│   ├── 🔌 api/            # API 接口
+│   ├── 🔐 auth/           # 用户认证
+│   ├── 🛒 cart/           # 购物车
+│   └── 📦 products/       # 产品展示
+├── 🧩 components/         # 组件库
+├── 📚 lib/               # 工具函数
+├── 🗃️ store/             # 状态管理
+└── 📄 database/          # 数据库Schema
 ```
 
-## 主要功能模块
+## 📖 文档中心
 
-### 认证系统
-- 基于 Supabase Auth
-- 支持邮箱注册/登录
-- 用户角色管理（用户/管理员）
+- 📋 [生产环境部署指南](PRODUCTION_README.md)
+- 🚀 [Vercel 部署文档](VERCEL_DEPLOY.md)
+- ⚙️ [环境变量配置](VERCEL_ENV_SETUP.md)
+- 👨‍💼 [管理员设置指南](管理员账户创建指南.md)
+- 🔧 [用户注册控制指南](管理后台用户注册控制使用指南.md)
 
-### 产品管理
-- 产品分类
-- 产品CRUD操作
-- 图片上传
-- 库存管理
+## 🛠️ 开发命令
 
-### 订单系统
-- 购物车功能
-- 订单创建
-- 状态跟踪
-- 配送管理
+```bash
+npm run dev     # 开发模式
+npm run build   # 生产构建
+npm run start   # 生产服务器
+npm run lint    # 代码检查
+```
 
-### 管理后台
-- 仅管理员可访问
-- 数据统计
-- 全面的管理功能
+## 🔒 安全特性
 
-## 开发指南
+- ✅ 安全的环境变量处理
+- ✅ Supabase RLS 行级安全
+- ✅ JWT 认证机制
+- ✅ 输入验证与清理
+- ✅ CSRF 攻击防护
 
-### 添加新页面
-1. 在 `app/` 目录下创建新路由
-2. 实现页面组件
-3. 添加必要的类型定义
+## 🤝 贡献指南
 
-### 数据库操作
-1. 使用 Supabase 客户端
-2. 遵循 TypeScript 类型定义
-3. 处理错误情况
-
-### 样式规范
-- 使用 Tailwind CSS
-- 遵循组件化设计
-- 响应式布局
-
-## 贡献指南
+欢迎提交 Issues 和 Pull Requests！
 
 1. Fork 项目
-2. 创建功能分支
+2. 创建特性分支
 3. 提交更改
-4. 创建 Pull Request
+4. 发起 Pull Request
 
-## 许可证
+## 📄 许可证
 
-MIT License
+MIT License - 查看 [LICENSE](LICENSE) 了解详情
 
-## 技术支持
+---
 
-如有问题，请创建 Issue 或联系开发团队。 
+<div align="center">
+
+**🎯 项目状态**: 生产就绪 | **📊 构建状态**: 通过 (23页面) | **🏷️ 版本**: 1.0.0
+
+如果这个项目对你有帮助，请给它一个 ⭐️！
+
+</div> 

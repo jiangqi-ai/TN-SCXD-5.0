@@ -111,7 +111,7 @@ export default function AdminSetup() {
         updateStepStatus('settings', true)
       }
     } catch (error) {
-      console.log('检查设置状态时出错:', error)
+      // 静默处理错误
     }
   }
 
