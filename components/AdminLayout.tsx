@@ -43,34 +43,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       current: pathname === '/admin'
     },
     {
-      name: '产品管理',
-      href: '/admin/products',
-      icon: Package,
-      current: pathname === '/admin/products'
-    },
-    {
-      name: '订单管理',
-      href: '/admin/orders',
-      icon: ShoppingCart,
-      current: pathname === '/admin/orders'
-    },
-    {
-      name: '用户管理',
-      href: '/admin/users',
-      icon: Users,
-      current: pathname === '/admin/users'
-    },
-    {
       name: '用户设置',
       href: '/admin/user-settings',
       icon: Settings,
       current: pathname === '/admin/user-settings'
-    },
-    {
-      name: '数据库管理',
-      href: '/admin/database',
-      icon: Database,
-      current: pathname === '/admin/database'
     },
     {
       name: '数据库配置',
@@ -89,12 +65,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       href: '/admin/setup',
       icon: Shield,
       current: pathname === '/admin/setup'
-    },
-    {
-      name: '数据统计',
-      href: '/admin/analytics',
-      icon: BarChart3,
-      current: pathname === '/admin/analytics'
     }
   ]
 

@@ -6,46 +6,23 @@ export default function HomePage() {
   const features = [
     {
       icon: Shield,
-      title: '品质保证',
-      description: '所有产品均经过严格质量检测，确保攀岩安全'
+      title: '安全可靠',
+      description: '系统采用先进的安全技术，保障数据安全'
     },
     {
       icon: Truck,
-      title: '快速配送',
-      description: '全国包邮，48小时内发货，让您尽快享受攀岩乐趣'
+      title: '快速部署',
+      description: '简单配置即可快速部署，节省开发时间'
     },
     {
       icon: Award,
       title: '专业服务',
-      description: '专业团队提供技术支持和产品咨询服务'
+      description: '提供专业的技术支持和咨询服务'
     },
     {
       icon: Mountain,
-      title: '户外体验',
-      description: '定期组织攀岩活动，与同好交流经验'
-    }
-  ]
-
-  const categories = [
-    {
-      name: '攀岩鞋',
-      image: '/images/climbing-shoes.jpg',
-      description: '专业攀岩鞋，提供优异抓地力'
-    },
-    {
-      name: '安全带',
-      image: '/images/harness.jpg',
-      description: '舒适安全带，保障攀岩安全'
-    },
-    {
-      name: '头盔',
-      image: '/images/helmet.jpg',
-      description: '轻量化头盔，全方位头部保护'
-    },
-    {
-      name: '绳索',
-      image: '/images/rope.jpg',
-      description: '高强度动力绳，值得信赖'
+      title: '稳定高效',
+      description: '系统稳定可靠，性能优异，支持高并发'
     }
   ]
 
@@ -56,20 +33,14 @@ export default function HomePage() {
         <div className="absolute inset-0 bg-black opacity-40"></div>
         <div className="relative z-10 text-center text-white max-w-4xl mx-auto px-4">
           <h1 className="text-5xl md:text-7xl font-bold mb-6">
-            攀登极限
+            TN-SCXD-5.0
             <br />
-            <span className="text-primary-300">征服高峰</span>
+            <span className="text-primary-300">系统模板</span>
           </h1>
           <p className="text-xl md:text-2xl mb-8 text-gray-200">
-            专业攀岩装备，助您安全攀登每一座山峰
+            专业的系统开发模板，助您快速构建现代化应用
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              href="/products"
-              className="bg-primary-600 hover:bg-primary-700 text-white px-8 py-4 rounded-lg text-lg font-semibold transition-colors"
-            >
-              浏览产品
-            </Link>
             <Link
               href="/auth/register"
               className="bg-white hover:bg-gray-100 text-primary-600 px-8 py-4 rounded-lg text-lg font-semibold transition-colors"
@@ -91,9 +62,9 @@ export default function HomePage() {
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">为什么选择我们</h2>
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">系统特点</h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              我们致力于为攀岩爱好者提供最优质的装备和服务
+              我们致力于提供最优质的系统模板和开发服务
             </p>
           </div>
           
@@ -111,34 +82,40 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Categories Section */}
+      {/* System Info Section */}
       <section className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">产品分类</h2>
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">系统功能</h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              从基础装备到专业器材，满足不同水平攀岩者的需求
+              完整的用户管理和系统配置功能
             </p>
           </div>
           
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {categories.map((category, index) => (
-              <Link
-                key={index}
-                href={`/products?category=${encodeURIComponent(category.name)}`}
-                className="group"
-              >
-                <div className="bg-white rounded-lg shadow-md overflow-hidden group-hover:shadow-lg transition-shadow">
-                  <div className="h-48 bg-gray-200 flex items-center justify-center">
-                    <Mountain className="h-16 w-16 text-gray-400" />
-                  </div>
-                  <div className="p-6">
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2">{category.name}</h3>
-                    <p className="text-gray-600">{category.description}</p>
-                  </div>
-                </div>
-              </Link>
-            ))}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="h-12 w-12 bg-primary-100 rounded-lg flex items-center justify-center mb-4">
+                <Shield className="h-6 w-6 text-primary-600" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">用户认证</h3>
+              <p className="text-gray-600">完整的用户注册、登录和权限管理系统</p>
+            </div>
+            
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="h-12 w-12 bg-primary-100 rounded-lg flex items-center justify-center mb-4">
+                <Mountain className="h-6 w-6 text-primary-600" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">数据库管理</h3>
+              <p className="text-gray-600">灵活的数据库配置和管理功能</p>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="h-12 w-12 bg-primary-100 rounded-lg flex items-center justify-center mb-4">
+                <Award className="h-6 w-6 text-primary-600" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">系统设置</h3>
+              <p className="text-gray-600">全面的系统配置和管理界面</p>
+            </div>
           </div>
         </div>
       </section>
@@ -146,15 +123,15 @@ export default function HomePage() {
       {/* CTA Section */}
       <section className="py-20 bg-primary-600">
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
-          <h2 className="text-4xl font-bold text-white mb-4">准备开始您的攀岩之旅？</h2>
+          <h2 className="text-4xl font-bold text-white mb-4">准备开始使用系统？</h2>
           <p className="text-xl text-primary-100 mb-8">
-            加入我们的社区，获取专业指导和优质装备
+            立即注册账户，体验完整的系统功能
           </p>
           <Link
-            href="/products"
+            href="/auth/register"
             className="bg-white hover:bg-gray-100 text-primary-600 px-8 py-4 rounded-lg text-lg font-semibold transition-colors inline-block"
           >
-            立即购买
+            立即注册
           </Link>
         </div>
       </section>

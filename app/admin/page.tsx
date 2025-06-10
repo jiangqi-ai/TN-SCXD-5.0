@@ -4,164 +4,43 @@ import { useState, useEffect } from 'react'
 import { createSupabaseClient } from '@/lib/supabase'
 import AdminLayout from '@/components/AdminLayout'
 import { 
-  Users, 
-  Package, 
-  ShoppingCart, 
-  DollarSign,
-  TrendingUp,
-  TrendingDown,
-  Activity
+  Shield,
+  Settings,
+  Database,
+  CheckCircle
 } from 'lucide-react'
 
-interface DashboardStats {
-  totalUsers: number
-  totalProducts: number
-  totalOrders: number
-  totalRevenue: number
-  recentOrders: Array<{
-    id: string
-    total_amount: number
-    status: string
-    created_at: string
-    profiles: {
-      full_name: string | null
-      email: string
-    } | null
-  }>
-  lowStockProducts: Array<{
-    id: string
-    name: string
-    stock_quantity: number
-  }>
-}
-
 export default function AdminDashboard() {
-  const [stats, setStats] = useState<DashboardStats | null>(null)
+  const [systemStatus, setSystemStatus] = useState<{
+    database: boolean
+    auth: boolean
+  }>({ database: false, auth: false })
   const [loading, setLoading] = useState(true)
   const supabase = createSupabaseClient()
 
   useEffect(() => {
-    fetchDashboardData()
+    checkSystemStatus()
   }, [])
 
-  const fetchDashboardData = async () => {
+  const checkSystemStatus = async () => {
     try {
-      // 获取用户总数
-      const { count: totalUsers } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
+      // 检查数据库连接
+      const { data, error } = await supabase.from('profiles').select('count').limit(1).single()
+      const databaseStatus = !error
+      
+      // 检查认证状态
+      const { data: authData } = await supabase.auth.getUser()
+      const authStatus = !!authData.user
 
-      // 获取产品总数
-      const { count: totalProducts } = await supabase
-        .from('products')
-        .select('*', { count: 'exact', head: true })
-        .eq('is_active', true)
-
-      // 获取订单总数
-      const { count: totalOrders } = await supabase
-        .from('orders')
-        .select('*', { count: 'exact', head: true })
-
-      // 获取总收入
-      const { data: revenueData } = await supabase
-        .from('orders')
-        .select('total_amount')
-        .eq('status', 'delivered')
-
-      const totalRevenue = revenueData?.reduce((sum, order) => sum + order.total_amount, 0) || 0
-
-      // 获取最近订单
-      const { data: recentOrders } = await supabase
-        .from('orders')
-        .select(`
-          id,
-          total_amount,
-          status,
-          created_at,
-          user_id,
-          profiles!orders_user_id_fkey (
-            full_name,
-            email
-          )
-        `)
-        .order('created_at', { ascending: false })
-        .limit(5)
-
-      // 获取低库存产品
-      const { data: lowStockProducts } = await supabase
-        .from('products')
-        .select('id, name, stock_quantity')
-        .eq('is_active', true)
-        .lte('stock_quantity', 10)
-        .order('stock_quantity', { ascending: true })
-        .limit(5)
-
-      setStats({
-        totalUsers: totalUsers || 0,
-        totalProducts: totalProducts || 0,
-        totalOrders: totalOrders || 0,
-        totalRevenue,
-        recentOrders: (recentOrders || []).map(order => ({
-          ...order,
-          profiles: Array.isArray(order.profiles) ? order.profiles[0] : order.profiles
-        })),
-        lowStockProducts: lowStockProducts || []
+      setSystemStatus({
+        database: databaseStatus,
+        auth: authStatus
       })
     } catch (error) {
-      console.error('Error fetching dashboard data:', error)
+      console.error('Error checking system status:', error)
+      setSystemStatus({ database: false, auth: false })
     } finally {
       setLoading(false)
-    }
-  }
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('zh-CN', {
-      style: 'currency',
-      currency: 'CNY'
-    }).format(price)
-  }
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('zh-CN', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800'
-      case 'processing':
-        return 'bg-blue-100 text-blue-800'
-      case 'shipped':
-        return 'bg-purple-100 text-purple-800'
-      case 'delivered':
-        return 'bg-green-100 text-green-800'
-      case 'cancelled':
-        return 'bg-red-100 text-red-800'
-      default:
-        return 'bg-gray-100 text-gray-800'
-    }
-  }
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return '待处理'
-      case 'processing':
-        return '处理中'
-      case 'shipped':
-        return '已发货'
-      case 'delivered':
-        return '已送达'
-      case 'cancelled':
-        return '已取消'
-      default:
-        return status
     }
   }
 
@@ -175,30 +54,34 @@ export default function AdminDashboard() {
     )
   }
 
-  const statCards = [
+  const quickActions = [
     {
-      name: '总用户数',
-      stat: stats?.totalUsers || 0,
-      icon: Users,
+      name: '用户设置',
+      description: '管理用户角色和权限',
+      href: '/admin/user-settings',
+      icon: Settings,
       color: 'bg-blue-500'
     },
     {
-      name: '总产品数',
-      stat: stats?.totalProducts || 0,
-      icon: Package,
+      name: '数据库配置',
+      description: '配置数据库连接和设置',
+      href: '/admin/database-config',
+      icon: Database,
       color: 'bg-green-500'
     },
     {
-      name: '总订单数',
-      stat: stats?.totalOrders || 0,
-      icon: ShoppingCart,
+      name: '系统设置',
+      description: '配置系统参数和选项',
+      href: '/admin/settings',
+      icon: Settings,
       color: 'bg-purple-500'
     },
     {
-      name: '总收入',
-      stat: formatPrice(stats?.totalRevenue || 0),
-      icon: DollarSign,
-      color: 'bg-yellow-500'
+      name: '系统初始化',
+      description: '初始化系统和安全设置',
+      href: '/admin/setup',
+      icon: Shield,
+      color: 'bg-orange-500'
     }
   ]
 
@@ -207,115 +90,89 @@ export default function AdminDashboard() {
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="sm:flex sm:items-center">
           <div className="sm:flex-auto">
-            <h1 className="text-2xl font-semibold text-gray-900">仪表板</h1>
+            <h1 className="text-2xl font-semibold text-gray-900">管理后台</h1>
             <p className="mt-2 text-sm text-gray-700">
-              系统概览和关键数据统计
+              欢迎使用系统管理后台，您可以在这里管理系统设置和配置。
             </p>
           </div>
         </div>
 
-        {/* 统计卡片 */}
-        <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {statCards.map((item) => (
-            <div key={item.name} className="bg-white overflow-hidden shadow rounded-lg">
-              <div className="p-5">
+        {/* 系统状态检查 */}
+        <div className="mt-8">
+          <div className="bg-white shadow rounded-lg">
+            <div className="px-4 py-5 sm:p-6">
+              <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+                系统状态
+              </h3>
+              <div className="space-y-3">
                 <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <div className={`w-10 h-10 ${item.color} rounded-md flex items-center justify-center`}>
-                      <item.icon className="w-6 h-6 text-white" />
-                    </div>
-                  </div>
-                  <div className="ml-5 w-0 flex-1">
-                    <dl>
-                      <dt className="text-sm font-medium text-gray-500 truncate">
-                        {item.name}
-                      </dt>
-                      <dd className="text-lg font-medium text-gray-900">
-                        {item.stat}
-                      </dd>
-                    </dl>
-                  </div>
+                  <CheckCircle className={`w-5 h-5 ${systemStatus.database ? 'text-green-500' : 'text-red-500'} mr-3`} />
+                  <span className="text-sm text-gray-700">
+                    数据库连接: {systemStatus.database ? '正常' : '异常'}
+                  </span>
+                </div>
+                <div className="flex items-center">
+                  <CheckCircle className={`w-5 h-5 ${systemStatus.auth ? 'text-green-500' : 'text-red-500'} mr-3`} />
+                  <span className="text-sm text-gray-700">
+                    用户认证: {systemStatus.auth ? '正常' : '异常'}
+                  </span>
                 </div>
               </div>
             </div>
-          ))}
+          </div>
         </div>
 
-        <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-2">
-          {/* 最近订单 */}
-          <div className="bg-white shadow rounded-lg">
-            <div className="px-4 py-5 sm:p-6">
-              <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
-                最近订单
-              </h3>
-              <div className="flow-root">
-                {stats?.recentOrders.length === 0 ? (
-                  <p className="text-gray-500 text-center py-4">暂无订单</p>
-                ) : (
-                  <ul className="-my-5 divide-y divide-gray-200">
-                    {stats?.recentOrders.map((order) => (
-                      <li key={order.id} className="py-4">
-                        <div className="flex items-center space-x-4">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate">
-                              {order.profiles?.full_name || order.profiles?.email || '未知用户'}
-                            </p>
-                            <p className="text-sm text-gray-500">
-                              {formatDate(order.created_at)}
-                            </p>
-                          </div>
-                          <div className="flex flex-col items-end">
-                            <p className="text-sm font-medium text-gray-900">
-                              {formatPrice(order.total_amount)}
-                            </p>
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
-                              {getStatusText(order.status)}
-                            </span>
-                          </div>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+        {/* 快捷操作 */}
+        <div className="mt-8">
+          <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+            快捷操作
+          </h3>
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {quickActions.map((action) => (
+              <div key={action.name} className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow">
+                <div className="p-5">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      <div className={`w-10 h-10 ${action.color} rounded-md flex items-center justify-center`}>
+                        <action.icon className="w-6 h-6 text-white" />
+                      </div>
+                    </div>
+                    <div className="ml-5 w-0 flex-1">
+                      <dl>
+                        <dt className="text-sm font-medium text-gray-900 truncate">
+                          {action.name}
+                        </dt>
+                        <dd className="text-xs text-gray-500 mt-1">
+                          {action.description}
+                        </dd>
+                      </dl>
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <a
+                      href={action.href}
+                      className="text-sm text-primary-600 hover:text-primary-500 font-medium"
+                    >
+                      进入管理 →
+                    </a>
+                  </div>
+                </div>
               </div>
-            </div>
+            ))}
           </div>
+        </div>
 
-          {/* 低库存产品 */}
+        {/* 系统信息 */}
+        <div className="mt-8">
           <div className="bg-white shadow rounded-lg">
             <div className="px-4 py-5 sm:p-6">
               <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
-                库存预警
+                系统信息
               </h3>
-              <div className="flow-root">
-                {stats?.lowStockProducts.length === 0 ? (
-                  <p className="text-gray-500 text-center py-4">库存充足</p>
-                ) : (
-                  <ul className="-my-5 divide-y divide-gray-200">
-                    {stats?.lowStockProducts.map((product) => (
-                      <li key={product.id} className="py-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate">
-                              {product.name}
-                            </p>
-                          </div>
-                          <div className="flex items-center">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              product.stock_quantity === 0 
-                                ? 'bg-red-100 text-red-800' 
-                                : product.stock_quantity <= 5 
-                                ? 'bg-orange-100 text-orange-800'
-                                : 'bg-yellow-100 text-yellow-800'
-                            }`}>
-                              库存: {product.stock_quantity}
-                            </span>
-                          </div>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+              <div className="text-sm text-gray-600 space-y-2">
+                <p>• 请定期检查系统安全设置</p>
+                <p>• 建议定期备份重要数据</p>
+                <p>• 如有问题，请联系系统管理员</p>
               </div>
             </div>
           </div>
