@@ -1,16 +1,5 @@
 {
-  "/admin/database-config/page": "app/admin/database-config/page.js",
-  "/_not-found": "app/_not-found.js",
-  "/admin/page": "app/admin/page.js",
-  "/api/admin/accounts/route": "app/api/admin/accounts/route.js",
-  "/admin/user-settings/page": "app/admin/user-settings/page.js",
-  "/admin/settings/page": "app/admin/settings/page.js",
-  "/api/auth/register/route": "app/api/auth/register/route.js",
-  "/admin/setup/page": "app/admin/setup/page.js",
-  "/api/admin/settings/[id]/route": "app/api/admin/settings/[id]/route.js",
-  "/api/admin/settings/route": "app/api/admin/settings/route.js",
-  "/auth/login/page": "app/auth/login/page.js",
-  "/init/page": "app/init/page.js",
+  "/not-found": "app/not-found.js",
   "/page": "app/page.js",
   "/auth/register/page": "app/auth/register/page.js"
 }
