@@ -51,33 +51,55 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
-      
-      if (user) {
-        await refreshProfile()
+      try {
+        const { data: { user }, error } = await supabase.auth.getUser()
+        
+        if (error) {
+          console.error('获取用户信息失败:', error)
+          setLoading(false)
+          return
+        }
+        
+        setUser(user)
+        
+        if (user) {
+          await refreshProfile()
+        }
+        
+        setLoading(false)
+      } catch (error) {
+        console.error('AuthProvider 初始化失败:', error)
+        setLoading(false)
       }
-      
-      setLoading(false)
     }
 
     getUser()
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setUser(session?.user ?? null)
-        
-        if (session?.user) {
-          await refreshProfile()
-        } else {
-          setProfile(null)
+    try {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          try {
+            setUser(session?.user ?? null)
+            
+            if (session?.user) {
+              await refreshProfile()
+            } else {
+              setProfile(null)
+            }
+            
+            setLoading(false)
+          } catch (error) {
+            console.error('认证状态变化处理失败:', error)
+            setLoading(false)
+          }
         }
-        
-        setLoading(false)
-      }
-    )
+      )
 
-    return () => subscription.unsubscribe()
+      return () => subscription.unsubscribe()
+    } catch (error) {
+      console.error('设置认证监听器失败:', error)
+      setLoading(false)
+    }
   }, [user?.id])
 
   const value = {
