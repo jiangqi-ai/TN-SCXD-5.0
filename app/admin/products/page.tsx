@@ -40,15 +40,15 @@ export default function ProductsPage() {
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
-  const supabase = createSupabaseClient()
 
   useEffect(() => {
     fetchProducts()
   }, [])
 
   const fetchProducts = async () => {
+    const client = createSupabaseClient()
     try {
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from('products')
         .select(`
           *,
@@ -61,7 +61,7 @@ export default function ProductsPage() {
       if (error) throw error
       
       // 处理数据，添加分类名称
-      const processedData = (data || []).map(product => ({
+      const processedData = (data || []).map((product: any) => ({
         ...product,
         category_name: product.categories?.name || '未分类'
       }))
@@ -77,8 +77,9 @@ export default function ProductsPage() {
   const handleDeleteProduct = async (id: string) => {
     if (!confirm('确定要删除这个产品吗？')) return
 
+    const client = createSupabaseClient()
     try {
-      const { error } = await supabase
+      const { error } = await client
         .from('products')
         .delete()
         .eq('id', id)
@@ -92,8 +93,9 @@ export default function ProductsPage() {
   }
 
   const handleToggleActive = async (id: string, currentStatus: boolean) => {
+    const client = createSupabaseClient()
     try {
-      const { error } = await supabase
+      const { error } = await client
         .from('products')
         .update({ is_active: !currentStatus })
         .eq('id', id)

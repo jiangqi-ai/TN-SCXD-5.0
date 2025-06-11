@@ -89,7 +89,7 @@ export default function ProductsPage() {
 
       if (error) throw error
       
-      const processedData = (data || []).map(product => ({
+      const processedData = (data || []).map((product: any) => ({
         ...product,
         category_name: product.categories?.name || '未分类',
         features: product.features || [],
@@ -117,7 +117,7 @@ export default function ProductsPage() {
       if (error) throw error
       
       // 为每个分类计算产品数量
-      const categoriesWithCount = (data || []).map(category => ({
+      const categoriesWithCount = (data || []).map((category: any) => ({
         ...category,
         product_count: 0 // 这里可以通过另一个查询获取实际数量
       }))

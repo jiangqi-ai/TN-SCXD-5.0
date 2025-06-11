@@ -11,7 +11,7 @@ export default function DatabasePage() {
   const [selectedTable, setSelectedTable] = useState('')
   const [tableData, setTableData] = useState<any[]>([])
   const [tableLoading, setTableLoading] = useState(false)
-  const supabase = createSupabaseClient()
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     fetchTables()
@@ -19,6 +19,14 @@ export default function DatabasePage() {
 
   const fetchTables = async () => {
     try {
+      setLoading(true)
+      setError(null)
+
+      const supabase = createSupabaseClient()
+      if (!supabase) {
+        throw new Error('Failed to initialize Supabase client')
+      }
+
       // 获取主要表格的基本信息
       const tablesList = [
         { name: 'profiles', description: '用户资料表' },
@@ -35,9 +43,11 @@ export default function DatabasePage() {
       const tablesWithCounts = await Promise.all(
         tablesList.map(async (table) => {
           try {
-            const { count } = await supabase
+            const { count, error } = await supabase
               .from(table.name)
               .select('*', { count: 'exact', head: true })
+            
+            if (error) throw error
             return { ...table, count: count || 0 }
           } catch (error) {
             console.error(`Error fetching ${table.name}:`, error)
@@ -49,6 +59,7 @@ export default function DatabasePage() {
       setTables(tablesWithCounts)
     } catch (error) {
       console.error('Error fetching tables:', error)
+      setError(error instanceof Error ? error.message : '获取数据失败')
     } finally {
       setLoading(false)
     }
@@ -58,7 +69,14 @@ export default function DatabasePage() {
     if (!tableName) return
     
     setTableLoading(true)
+    setError(null)
+    
     try {
+      const supabase = createSupabaseClient()
+      if (!supabase) {
+        throw new Error('Failed to initialize Supabase client')
+      }
+
       const { data, error } = await supabase
         .from(tableName)
         .select('*')
@@ -69,6 +87,7 @@ export default function DatabasePage() {
       setTableData(data || [])
     } catch (error) {
       console.error(`Error fetching ${tableName} data:`, error)
+      setError(error instanceof Error ? error.message : '获取数据失败')
       setTableData([])
     } finally {
       setTableLoading(false)
@@ -109,6 +128,27 @@ export default function DatabasePage() {
       <AdminLayout>
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-600"></div>
+        </div>
+      </AdminLayout>
+    )
+  }
+
+  if (error) {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="text-red-500 text-xl mb-4">
+              <AlertCircle className="h-12 w-12 mx-auto mb-2" />
+              {error}
+            </div>
+            <button
+              onClick={() => fetchTables()}
+              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            >
+              重试
+            </button>
+          </div>
         </div>
       </AdminLayout>
     )

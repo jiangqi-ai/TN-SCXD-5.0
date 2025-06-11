@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createSupabaseClient } from '@/lib/supabase'
 import AdminLayout from '@/components/AdminLayout'
-import { BarChart3, TrendingUp, TrendingDown, Users, Package, ShoppingCart, DollarSign } from 'lucide-react'
+import { BarChart3, TrendingUp, TrendingDown, Users, Package, ShoppingCart, DollarSign, AlertCircle } from 'lucide-react'
 
 interface AnalyticsData {
   userGrowth: Array<{ month: string; count: number }>
@@ -21,7 +21,7 @@ export default function AnalyticsPage() {
   const [data, setData] = useState<AnalyticsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [timeRange, setTimeRange] = useState('30d')
-  const supabase = createSupabaseClient()
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     fetchAnalyticsData()
@@ -30,23 +30,35 @@ export default function AnalyticsPage() {
   const fetchAnalyticsData = async () => {
     try {
       setLoading(true)
+      setError(null)
+      
+      const supabase = createSupabaseClient()
+      if (!supabase) {
+        throw new Error('Failed to initialize Supabase client')
+      }
       
       // 获取用户增长数据
-      const { data: users } = await supabase
+      const { data: users, error: usersError } = await supabase
         .from('profiles')
         .select('created_at')
         .order('created_at', { ascending: false })
 
+      if (usersError) throw usersError
+
       // 获取订单数据
-      const { data: orders } = await supabase
+      const { data: orders, error: ordersError } = await supabase
         .from('orders')
         .select('created_at, final_amount, status')
         .order('created_at', { ascending: false })
 
+      if (ordersError) throw ordersError
+
       // 获取产品数据
-      const { data: products } = await supabase
+      const { data: products, error: productsError } = await supabase
         .from('products')
         .select('name, stock_quantity, price')
+
+      if (productsError) throw productsError
 
       // 处理用户增长数据
       const userGrowth = processUserGrowth(users || [])
@@ -68,6 +80,7 @@ export default function AnalyticsPage() {
       })
     } catch (error) {
       console.error('Error fetching analytics data:', error)
+      setError(error instanceof Error ? error.message : '获取数据失败')
     } finally {
       setLoading(false)
     }
@@ -157,6 +170,27 @@ export default function AnalyticsPage() {
       <AdminLayout>
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-600"></div>
+        </div>
+      </AdminLayout>
+    )
+  }
+
+  if (error) {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="text-red-500 text-xl mb-4">
+              <AlertCircle className="h-12 w-12 mx-auto mb-2" />
+              {error}
+            </div>
+            <button
+              onClick={() => fetchAnalyticsData()}
+              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            >
+              重试
+            </button>
+          </div>
         </div>
       </AdminLayout>
     )

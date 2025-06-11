@@ -218,7 +218,7 @@ export default function SystemSetupWizard() {
       if (settings && settings.length > 0) {
         const newConfig = { ...dbConfig }
         
-        settings.forEach(setting => {
+        settings.forEach((setting: any) => {
           const key = setting.key as DbSettingKey
           const value = setting.value
           
@@ -253,7 +253,7 @@ export default function SystemSetupWizard() {
         .in('key', ['system_initialized'])
 
       if (systemSettings && systemSettings.length > 0) {
-        const systemInitialized = systemSettings.find(s => s.key === 'system_initialized')?.value === 'true'
+        const systemInitialized = systemSettings.find((s: any) => s.key === 'system_initialized')?.value === 'true'
         if (systemInitialized && adminUser && adminUser.length > 0) {
           toast.success('系统已初始化，正在跳转到管理后台...')
           setTimeout(() => router.push('/admin'), 2000)
@@ -362,20 +362,21 @@ export default function SystemSetupWizard() {
 
   const saveDatabaseConfig = async () => {
     try {
-      const configEntries = [
-        { key: 'db_service_key', value: dbConfig.db_service_key, category: 'database', description: 'Supabase服务角色密钥', data_type: 'string', is_public: false },
-        { key: 'db_connection_pool_size', value: dbConfig.db_connection_pool_size.toString(), category: 'database', description: '连接池大小', data_type: 'number', is_public: false },
-        { key: 'db_query_timeout', value: dbConfig.db_query_timeout.toString(), category: 'database', description: '查询超时时间', data_type: 'number', is_public: false },
-        { key: 'db_backup_enabled', value: 'true', category: 'database', description: '启用数据库备份', data_type: 'boolean', is_public: false },
-        { key: 'db_monitoring_enabled', value: 'true', category: 'database', description: '启用数据库监控', data_type: 'boolean', is_public: false }
-      ]
+      const settingsToUpdate = Object.entries(dbConfig).map(([key, value]) => ({
+        key,
+        value: String(value),
+        category: 'database',
+        description: `Database ${key}`,
+        data_type: 'string' as const,
+        is_public: false
+      })).filter((s: any) => s.key !== 'password' || s.value !== '')
 
       // 保存所有配置项
-      for (const config of configEntries) {
+      for (const setting of settingsToUpdate) {
         await supabase
           .from('settings')
           .upsert({
-            ...config,
+            ...setting,
             updated_at: new Date().toISOString()
           }, { onConflict: 'key' })
       }
@@ -407,7 +408,7 @@ export default function SystemSetupWizard() {
       if (currentSettings && currentSettings.length > 0) {
         const newConfig = { ...dbConfig }
         
-        currentSettings.forEach(setting => {
+        currentSettings.forEach((setting: any) => {
           const key = setting.key as DbSettingKey
           const value = setting.value
           

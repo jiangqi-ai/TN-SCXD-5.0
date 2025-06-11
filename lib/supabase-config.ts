@@ -178,7 +178,7 @@ class SupabaseConfigManager {
         throw new Error('No client available for config update')
       }
 
-      const updates = []
+      const updates: any[] = []
       if (newConfig.url) {
         updates.push({ key: 'db_url', value: newConfig.url, category: 'database', is_public: false })
       }

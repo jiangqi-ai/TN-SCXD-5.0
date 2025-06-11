@@ -2,30 +2,30 @@
 
 import { createContext, useContext, useEffect, useState } from 'react'
 import { User } from '@supabase/supabase-js'
-import { createSupabaseClient } from '@/lib/supabase'
-import { Database } from '@/types/database'
+import { createSupabaseClient, TypedSupabaseClient } from '@/lib/supabase'
+import type { Database } from '@/types/database'
 
 type Profile = Database['public']['Tables']['profiles']['Row']
 
 interface AuthContextType {
   user: User | null
   profile: Profile | null
+  supabase: TypedSupabaseClient
   loading: boolean
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  profile: null,
+  supabase: createSupabaseClient(),
+  loading: true,
+  signOut: async () => {},
+  refreshProfile: async () => {}
+})
 
-export function useAuth() {
-  const context = useContext(AuthContext)
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider')
-  }
-  return context
-}
-
-export default function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
@@ -50,8 +50,8 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       setProfile(null)
       
       // 清除本地存储
-      localStorage.clear() // 清除所有本地存储
-      sessionStorage.clear() // 清除所有会话存储
+      localStorage.clear()
+      sessionStorage.clear()
       
       // 尝试调用 Supabase 登出
       try {
@@ -72,69 +72,59 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   }
 
   useEffect(() => {
-    const getUser = async () => {
+    const fetchUser = async () => {
       try {
-        const { data: { user }, error } = await supabase.auth.getUser()
-        
-        if (error) {
-          console.error('获取用户信息失败:', error)
-          setLoading(false)
-          return
-        }
-        
+        const { data: { user } } = await supabase.auth.getUser()
         setUser(user)
-        
+
         if (user) {
-          await refreshProfile()
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single()
+          setProfile(profile)
         }
-        
-        setLoading(false)
       } catch (error) {
-        console.error('AuthProvider 初始化失败:', error)
+        console.error('Error fetching user:', error)
+      } finally {
         setLoading(false)
       }
     }
 
-    getUser()
+    fetchUser()
 
-    try {
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        async (event, session) => {
-          try {
-            setUser(session?.user ?? null)
-            
-            if (session?.user) {
-              await refreshProfile()
-            } else {
-              setProfile(null)
-            }
-            
-            setLoading(false)
-          } catch (error) {
-            console.error('认证状态变化处理失败:', error)
-            setLoading(false)
-          }
-        }
-      )
-
-      return () => subscription.unsubscribe()
-    } catch (error) {
-      console.error('设置认证监听器失败:', error)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      setUser(session?.user ?? null)
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single()
+        setProfile(profile)
+      } else {
+        setProfile(null)
+      }
       setLoading(false)
-    }
-  }, [user?.id])
+    })
 
-  const value = {
-    user,
-    profile,
-    loading,
-    signOut,
-    refreshProfile,
-  }
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [])
 
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={{ user, profile, supabase, loading, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   )
+}
+
+export const useAuth = () => {
+  const context = useContext(AuthContext)
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider')
+  }
+  return context
 } 

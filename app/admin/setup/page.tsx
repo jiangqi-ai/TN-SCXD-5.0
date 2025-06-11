@@ -127,7 +127,7 @@ export default function DatabaseConfigPage() {
       // 合并配置
       const dbConfig = { ...config, ...envConfig }
       
-      settings?.forEach(setting => {
+      settings?.forEach((setting: any) => {
         const key = setting.key as DbSettingKey
         const value = setting.value
         

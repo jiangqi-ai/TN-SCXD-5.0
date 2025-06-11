@@ -2,32 +2,49 @@ import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
 import SupabaseConfigManager from './supabase-config'
 
-let supabaseClient: ReturnType<typeof createClient<Database>> | null = null
+// 简化类型定义
+export type TypedSupabaseClient = any
+
+let supabaseClient: TypedSupabaseClient | null = null
 
 // 创建默认的 Supabase 客户端
-export function createSupabaseClient() {
+export function createSupabaseClient(): TypedSupabaseClient {
   if (supabaseClient) return supabaseClient
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
 
-  // 在生产环境中，如果没有环境变量，返回一个模拟客户端
-  if (process.env.NODE_ENV === 'production' && (!supabaseUrl || !supabaseAnonKey)) {
-    console.warn('Supabase environment variables are missing in production')
-    return createClient('https://placeholder.supabase.co', 'placeholder-key', {
-      auth: { persistSession: false }
-    })
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.warn('Supabase environment variables are missing')
+    supabaseClient = createClient(
+      'https://placeholder.supabase.co',
+      'placeholder-key',
+      {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+          detectSessionInUrl: false
+        }
+      }
+    )
+    return supabaseClient
   }
 
-  supabaseClient = createClient<Database>(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true,
-      storageKey: 'supabase.auth.token',
-      storage: typeof window !== 'undefined' ? window.localStorage : undefined
+  supabaseClient = createClient(
+    supabaseUrl,
+    supabaseAnonKey,
+    {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        storageKey: 'supabase.auth.token',
+        storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+        flowType: 'pkce'
+      }
     }
-  })
+  )
 
   return supabaseClient
 }
@@ -52,7 +69,7 @@ export const supabase = createSupabaseClient()
 // 数据库类型定义已移至 @/types/database.ts 
 
 // 用于测试连接的客户端创建函数
-export function createTestClient(url: string, anonKey: string) {
+export function createTestClient(url: string, anonKey: string): TypedSupabaseClient {
   return createClient(url, anonKey, {
     auth: {
       persistSession: false,

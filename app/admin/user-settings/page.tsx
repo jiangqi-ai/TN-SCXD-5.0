@@ -66,7 +66,7 @@ export default function UserSettingsPage() {
 
       if (error) throw error
 
-      const settingsMap = data.reduce((acc, item) => {
+      const settingsMap = data.reduce((acc: Record<string, string>, item: any) => {
         acc[item.key] = item.value
         return acc
       }, {} as Record<string, string>)

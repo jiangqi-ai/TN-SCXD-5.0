@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createSupabaseClient } from '@/lib/supabase'
+import { useAuth } from '@/components/AuthProvider'
 import AdminLayout from '@/components/AdminLayout'
 import { 
   Users, 
@@ -38,7 +38,7 @@ interface DashboardStats {
 export default function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
-  const supabase = createSupabaseClient()
+  const { supabase } = useAuth()
 
   useEffect(() => {
     fetchDashboardData()
@@ -68,7 +68,7 @@ export default function AdminDashboard() {
         .select('final_amount')
         .eq('status', 'delivered')
 
-      const totalRevenue = revenueData?.reduce((sum, order) => sum + order.final_amount, 0) || 0
+      const totalRevenue = revenueData?.reduce((sum: number, order: any) => sum + order.final_amount, 0) || 0
 
       // 获取最近订单
       const { data: recentOrders } = await supabase
@@ -87,7 +87,7 @@ export default function AdminDashboard() {
         .order('created_at', { ascending: false })
         .limit(5)
 
-      // 获取低库存产品 - 使用RPC查询或者简单查询
+      // 获取低库存产品
       const { data: allProducts } = await supabase
         .from('products')
         .select('id, name, stock_quantity, min_stock_level')
@@ -95,7 +95,7 @@ export default function AdminDashboard() {
         .order('stock_quantity', { ascending: true })
 
       const lowStockProducts = (allProducts || [])
-        .filter(product => product.stock_quantity <= (product.min_stock_level || 5))
+        .filter((product: any) => product.stock_quantity <= (product.min_stock_level || 5))
         .slice(0, 5)
 
       setStats({
@@ -103,7 +103,7 @@ export default function AdminDashboard() {
         totalProducts: totalProducts || 0,
         totalOrders: totalOrders || 0,
         totalRevenue,
-        recentOrders: (recentOrders || []).map(order => ({
+        recentOrders: (recentOrders || []).map((order: any) => ({
           ...order,
           total_amount: order.final_amount,
           profiles: Array.isArray(order.profiles) ? order.profiles[0] : order.profiles
