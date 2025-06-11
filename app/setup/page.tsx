@@ -164,6 +164,8 @@ export default function SystemSetupWizard() {
   ])
 
   const supabase = createSupabaseClient()
+  const [testing, setTesting] = useState(false)
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     checkSystemStatus()
@@ -270,36 +272,49 @@ export default function SystemSetupWizard() {
   }
 
   const testDatabaseConnection = async () => {
-    setLoading(true)
+    setTesting(true)
     try {
       // 使用用户配置的URL和密钥创建新的supabase客户端进行测试
       const { createClient } = await import('@supabase/supabase-js')
       const testClient = createClient(dbConfig.db_url, dbConfig.db_anon_key)
       
-      // 测试数据库连接
-      const { data, error } = await testClient
+      // 测试数据库连接 - 先尝试简单的健康检查
+      const { error: healthCheckError } = await testClient.from('_health').select('*').limit(1)
+      
+      if (healthCheckError) {
+        throw new Error(`数据库连接失败: ${healthCheckError.message}`)
+      }
+
+      // 测试settings表访问权限
+      const { error: settingsError } = await testClient
         .from('settings')
         .select('count')
         .limit(1)
 
-      if (error) {
-        // 如果settings表不存在，尝试访问其他系统表
-        const { error: authError } = await testClient.auth.getSession()
-        if (authError) {
-          throw new Error(`数据库连接失败: ${error.message}`)
-        }
+      if (settingsError) {
+        throw new Error(`数据库表访问失败: ${settingsError.message}`)
       }
 
-      // 连接成功，保存数据库配置
-      await saveDatabaseConfig()
-      updateStepStatus('database', true)
-      toast.success('数据库连接测试成功，配置已保存！')
+      toast.success('数据库连接测试成功！')
+
+      // 连接测试成功，开始保存配置
+      setSaving(true)
+      try {
+        await saveDatabaseConfig()
+        updateStepStatus('database', true)
+        toast.success('数据库配置已成功保存！')
+      } catch (saveError: any) {
+        console.error('保存配置失败:', saveError)
+        toast.error(`配置保存失败: ${saveError.message}`)
+      } finally {
+        setSaving(false)
+      }
       
     } catch (error: any) {
       console.error('数据库连接测试失败:', error)
       toast.error(`数据库连接测试失败: ${error.message || '请检查URL和密钥是否正确'}`)
     } finally {
-      setLoading(false)
+      setTesting(false)
     }
   }
 
@@ -642,13 +657,18 @@ export default function SystemSetupWizard() {
       <div className="flex justify-end">
         <button
           onClick={testDatabaseConnection}
-          disabled={loading || !dbConfig.db_url || !dbConfig.db_anon_key}
+          disabled={testing || saving || !dbConfig.db_url || !dbConfig.db_anon_key}
           className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? (
+          {testing ? (
             <>
               <Loader className="h-4 w-4 mr-2 animate-spin" />
-              测试中...
+              测试连接中...
+            </>
+          ) : saving ? (
+            <>
+              <Loader className="h-4 w-4 mr-2 animate-spin" />
+              保存配置中...
             </>
           ) : (
             <>
