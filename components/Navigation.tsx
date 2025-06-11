@@ -16,12 +16,39 @@ export default function Navigation() {
   const cartItemsCount = items.reduce((total, item) => total + item.quantity, 0)
 
   const handleSignOut = async () => {
+    let timeoutId: NodeJS.Timeout | null = null;
+    
     try {
       setIsLoggingOut(true)
-      await signOut()
-    } catch (error) {
-      console.error('退出登录失败:', error)
-      toast.error('退出登录失败，请重试')
+      
+      // 创建一个Promise，如果5秒内没有完成就reject
+      const signOutWithTimeout = new Promise<void>((resolve, reject) => {
+        timeoutId = setTimeout(() => {
+          reject(new Error('退出超时'))
+        }, 5000)
+
+        // 尝试正常退出
+        signOut()
+          .then(() => {
+            if (timeoutId) clearTimeout(timeoutId)
+            resolve()
+          })
+          .catch(reject)
+      })
+
+      await signOutWithTimeout
+      
+    } catch (err) {
+      console.error('退出登录失败:', err)
+      
+      // 清理超时定时器
+      if (timeoutId) clearTimeout(timeoutId)
+      
+      // 强制清除状态并重定向
+      toast.error('退出登录失败，正在强制退出...')
+      localStorage.clear()
+      sessionStorage.clear()
+      window.location.href = '/auth/login'
     } finally {
       setIsLoggingOut(false)
       setShowUserMenu(false)

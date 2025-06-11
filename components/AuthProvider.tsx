@@ -45,28 +45,29 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
   const signOut = async () => {
     try {
-      const { error } = await supabase.auth.signOut()
-      if (error) {
-        console.error('退出登录失败:', error)
-        throw error
-      }
-      
-      // 清除状态
+      // 无论数据库是否可连接，都要清除本地状态
       setUser(null)
       setProfile(null)
       
       // 清除本地存储
-      localStorage.removeItem('supabase.auth.token')
+      localStorage.clear() // 清除所有本地存储
+      sessionStorage.clear() // 清除所有会话存储
       
-      // 强制刷新页面以确保所有状态都被清除
-      window.location.href = '/'
+      // 尝试调用 Supabase 登出
+      try {
+        await supabase.auth.signOut()
+      } catch (error) {
+        console.error('Supabase 登出失败:', error)
+        // 即使 Supabase 登出失败，继续执行
+      }
+      
+      // 强制重定向到登录页面
+      window.location.href = '/auth/login'
       
     } catch (error) {
       console.error('退出登录时发生错误:', error)
-      // 即使发生错误，也尝试清除状态
-      setUser(null)
-      setProfile(null)
-      window.location.href = '/'
+      // 发生错误时也强制重定向
+      window.location.href = '/auth/login'
     }
   }
 
