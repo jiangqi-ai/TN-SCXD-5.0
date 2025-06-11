@@ -40,19 +40,15 @@ export default function HomePage() {
           <p className="text-xl md:text-2xl mb-8 text-gray-200">
             专业的系统开发模板，助您快速构建现代化应用
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="mt-10 flex items-center justify-center gap-x-6">
             <Link
-              href="/auth/register"
-              className="bg-white hover:bg-gray-100 text-primary-600 px-8 py-4 rounded-lg text-lg font-semibold transition-colors"
+              href="/auth/login"
+              className="rounded-md bg-primary-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
             >
-              立即注册
+              立即登录
             </Link>
-
-            <Link
-              href="/setup"
-              className="bg-red-500 hover:bg-red-600 text-white px-8 py-4 rounded-lg text-lg font-semibold transition-colors"
-            >
-              系统初始化
+            <Link href="/products" className="text-sm font-semibold leading-6 text-gray-900">
+              浏览产品 <span aria-hidden="true">→</span>
             </Link>
           </div>
         </div>
@@ -125,13 +121,13 @@ export default function HomePage() {
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
           <h2 className="text-4xl font-bold text-white mb-4">准备开始使用系统？</h2>
           <p className="text-xl text-primary-100 mb-8">
-            立即注册账户，体验完整的系统功能
+            立即登录账户，体验完整的系统功能
           </p>
           <Link
-            href="/auth/register"
+            href="/auth/login"
             className="bg-white hover:bg-gray-100 text-primary-600 px-8 py-4 rounded-lg text-lg font-semibold transition-colors inline-block"
           >
-            立即注册
+            立即登录
           </Link>
         </div>
       </section>

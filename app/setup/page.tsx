@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { createSupabaseClient } from '@/lib/supabase'
 import { 
   Database, 
@@ -166,6 +167,7 @@ export default function SystemSetupWizard() {
   const supabase = createSupabaseClient()
   const [testing, setTesting] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [initializing, setInitializing] = useState(false)
 
   useEffect(() => {
     checkSystemStatus()
@@ -283,6 +285,68 @@ export default function SystemSetupWizard() {
     }
   }
 
+  const initializeDatabase = async () => {
+    setInitializing(true)
+    try {
+      // 验证URL格式
+      const urlError = validateDatabaseUrl(dbConfig.db_url)
+      if (urlError) {
+        throw new Error(urlError)
+      }
+
+      // 验证anon key格式
+      if (!dbConfig.db_anon_key || dbConfig.db_anon_key.length < 20) {
+        throw new Error('无效的数据库密钥，请检查anon key是否正确')
+      }
+
+      console.log('开始初始化数据库...')
+      toast.loading('正在初始化数据库结构...', { id: 'init-db' })
+
+      const response = await fetch('/api/setup/init-database', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: dbConfig.db_url,
+          anonKey: dbConfig.db_anon_key
+        })
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || '数据库初始化失败')
+      }
+
+      console.log('数据库初始化成功!')
+      toast.success('数据库初始化成功！', { id: 'init-db' })
+      
+      // 初始化成功后自动测试连接
+      await testDatabaseConnection()
+      
+      return true
+
+    } catch (error: any) {
+      console.error('数据库初始化失败:', error)
+      
+      // 如果是表结构问题，显示特殊提示
+      if (error.message.includes('数据库表结构')) {
+        toast.error('需要手动执行SQL脚本，请查看数据库设置指南', { 
+          id: 'init-db',
+          duration: 5000
+        })
+        // 打开指南页面
+        window.open('/setup/database-guide', '_blank')
+      } else {
+        toast.error(error.message, { id: 'init-db' })
+      }
+      return false
+    } finally {
+      setInitializing(false)
+    }
+  }
+
   const testDatabaseConnection = async () => {
     setTesting(true)
     let retryCount = 0
@@ -333,7 +397,10 @@ export default function SystemSetupWizard() {
             throw error
           }
 
-          // 连接成功
+          // 连接成功，保存配置
+          await saveDatabaseConfig()
+          updateStepStatus('database', true)
+          
           console.log('数据库连接测试成功!')
           toast.success('数据库连接测试成功！')
           return true
@@ -699,10 +766,28 @@ export default function SystemSetupWizard() {
         </div>
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex justify-end space-x-3">
+        <button
+          onClick={initializeDatabase}
+          disabled={initializing || testing || saving || !dbConfig.db_url || !dbConfig.db_anon_key}
+          className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {initializing ? (
+            <>
+              <Loader className="h-4 w-4 mr-2 animate-spin" />
+              初始化中...
+            </>
+          ) : (
+            <>
+              <Settings className="h-4 w-4 mr-2" />
+              初始化数据库
+            </>
+          )}
+        </button>
+        
         <button
           onClick={testDatabaseConnection}
-          disabled={testing || saving || !dbConfig.db_url || !dbConfig.db_anon_key}
+          disabled={testing || saving || initializing || !dbConfig.db_url || !dbConfig.db_anon_key}
           className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {testing ? (
@@ -727,7 +812,10 @@ export default function SystemSetupWizard() {
       {dbConfig.db_url && dbConfig.db_anon_key && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-4">
           <p className="text-sm text-blue-700">
-            💡 <strong>提示:</strong> 点击"测试连接并保存"按钮来验证数据库配置并保存设置。
+            💡 <strong>提示:</strong> 如果是首次设置，请先点击"初始化数据库"创建必要的表结构，然后点击"测试连接并保存"验证配置。
+          </p>
+          <p className="text-sm text-blue-600 mt-2">
+            如果初始化失败，请查看 <Link href="/setup/database-guide" target="_blank" className="underline hover:text-blue-800">数据库设置指南</Link> 了解如何手动执行SQL脚本。
           </p>
         </div>
       )}
