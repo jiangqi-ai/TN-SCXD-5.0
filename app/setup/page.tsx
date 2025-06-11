@@ -273,27 +273,55 @@ export default function SystemSetupWizard() {
 
   const testDatabaseConnection = async () => {
     setTesting(true)
+    
+    // 创建一个超时Promise
+    const timeout = new Promise((_, reject) => {
+      setTimeout(() => {
+        reject(new Error('连接测试超时，请检查数据库URL是否正确'))
+      }, 10000) // 10秒超时
+    })
+
     try {
       // 使用用户配置的URL和密钥创建新的supabase客户端进行测试
       const { createClient } = await import('@supabase/supabase-js')
-      const testClient = createClient(dbConfig.db_url, dbConfig.db_anon_key)
+      const testClient = createClient(dbConfig.db_url, dbConfig.db_anon_key, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      })
       
-      // 测试数据库连接 - 先尝试简单的健康检查
-      const { error: healthCheckError } = await testClient.from('_health').select('*').limit(1)
-      
-      if (healthCheckError) {
-        throw new Error(`数据库连接失败: ${healthCheckError.message}`)
-      }
+      // 使用Promise.race来实现超时控制
+      await Promise.race([
+        (async () => {
+          // 测试数据库连接
+          const { error: healthCheckError } = await testClient.rpc('version')
+          
+          if (healthCheckError) {
+            console.error('健康检查失败:', healthCheckError)
+            throw new Error('数据库连接失败: 无法连接到数据库服务')
+          }
 
-      // 测试settings表访问权限
-      const { error: settingsError } = await testClient
-        .from('settings')
-        .select('count')
-        .limit(1)
+          // 测试settings表访问权限
+          const { error: settingsError } = await testClient
+            .from('settings')
+            .select('count')
+            .limit(1)
+            .single()
 
-      if (settingsError) {
-        throw new Error(`数据库表访问失败: ${settingsError.message}`)
-      }
+          if (settingsError) {
+            console.error('设置表访问失败:', settingsError)
+            if (settingsError.code === 'PGRST301') {
+              throw new Error('数据库表访问失败: 权限不足，请检查数据库密钥是否正确')
+            } else if (settingsError.code === 'PGRST204') {
+              throw new Error('数据库表访问失败: settings表不存在，请先完成数据库初始化')
+            } else {
+              throw new Error(`数据库表访问失败: ${settingsError.message}`)
+            }
+          }
+        })(),
+        timeout
+      ])
 
       toast.success('数据库连接测试成功！')
 
@@ -312,7 +340,7 @@ export default function SystemSetupWizard() {
       
     } catch (error: any) {
       console.error('数据库连接测试失败:', error)
-      toast.error(`数据库连接测试失败: ${error.message || '请检查URL和密钥是否正确'}`)
+      toast.error(error.message || '请检查URL和密钥是否正确')
     } finally {
       setTesting(false)
     }
