@@ -285,7 +285,10 @@ export default function SystemSetupWizard() {
 
   const testDatabaseConnection = async () => {
     setTesting(true)
-    
+    let retryCount = 0
+    const maxRetries = 2
+    const retryDelay = 2000 // 2秒延迟
+
     try {
       // 验证URL格式
       const urlError = validateDatabaseUrl(dbConfig.db_url)
@@ -298,88 +301,45 @@ export default function SystemSetupWizard() {
         throw new Error('无效的数据库密钥，请检查anon key是否正确')
       }
 
-      // 使用用户配置的URL和密钥创建新的supabase客户端进行测试
-      const { createClient } = await import('@supabase/supabase-js')
-      const testClient = createClient(dbConfig.db_url, dbConfig.db_anon_key, {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      })
-
-      let retryCount = 0
-      const maxRetries = 2
-
       while (retryCount <= maxRetries) {
         try {
           console.log(`尝试连接数据库... 第${retryCount + 1}次`)
           
-          // 测试数据库连接
-          const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('连接超时')), 5000)
-          })
-
-          const healthCheckPromise = testClient.rpc('version')
-          const raceResult = await Promise.race([healthCheckPromise, timeoutPromise])
-          const { error: healthCheckError } = raceResult as { error: any }
+          // 创建一个新的测试客户端
+          const { createTestClient } = await import('@/lib/supabase')
+          const testClient = createTestClient(dbConfig.db_url, dbConfig.db_anon_key)
           
-          if (healthCheckError) {
-            throw new Error('数据库连接失败: 无法连接到数据库服务')
-          }
-
-          // 如果成功，继续测试表访问权限
-          const settingsPromise = testClient
+          // 使用更简单的健康检查
+          const { data, error } = await testClient
             .from('settings')
             .select('count')
             .limit(1)
-            .single()
+            .timeout(5000)
 
-          const settingsResult = await Promise.race([settingsPromise, timeoutPromise])
-          const { error: settingsError } = settingsResult as { error: any }
-
-          if (settingsError) {
-            if (settingsError.code === 'PGRST301') {
-              throw new Error('数据库表访问失败: 权限不足，请检查数据库密钥是否正确')
-            } else if (settingsError.code === 'PGRST204') {
-              throw new Error('数据库表访问失败: settings表不存在，请先完成数据库初始化')
-            } else {
-              throw new Error(`数据库表访问失败: ${settingsError.message}`)
-            }
+          if (error) {
+            console.error(`第${retryCount + 1}次连接尝试失败:`, error.message)
+            throw error
           }
 
-          // 如果成功，跳出重试循环
-          console.log('数据库连接成功！')
-          break
+          // 连接成功
+          console.log('数据库连接测试成功!')
+          toast.success('数据库连接测试成功！')
+          return true
 
-        } catch (error: any) {
-          console.error(`第${retryCount + 1}次连接尝试失败:`, error.message)
-          if (retryCount === maxRetries) {
+        } catch (error) {
+          retryCount++
+          if (retryCount <= maxRetries) {
+            console.log(`等待${retryDelay/1000}秒后重试...`)
+            await new Promise(resolve => setTimeout(resolve, retryDelay))
+          } else {
             throw new Error(`数据库连接失败 (已重试${maxRetries}次): ${error.message}`)
           }
-          retryCount++
-          // 等待1秒后重试
-          await new Promise(resolve => setTimeout(resolve, 1000))
         }
       }
-
-      toast.success('数据库连接测试成功！')
-
-      // 连接测试成功，开始保存配置
-      setSaving(true)
-      try {
-        await saveDatabaseConfig()
-        updateStepStatus('database', true)
-        toast.success('数据库配置已成功保存！')
-      } catch (saveError: any) {
-        console.error('保存配置失败:', saveError)
-        toast.error(`配置保存失败: ${saveError.message}`)
-      } finally {
-        setSaving(false)
-      }
-      
-    } catch (error: any) {
+    } catch (error) {
       console.error('数据库连接测试失败:', error)
-      toast.error(error.message || '请检查URL和密钥是否正确')
+      toast.error(error.message)
+      return false
     } finally {
       setTesting(false)
     }
@@ -1147,4 +1107,5 @@ export default function SystemSetupWizard() {
       </div>
     </div>
   )
+} 
 } 
