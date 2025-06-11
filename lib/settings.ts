@@ -66,7 +66,7 @@ export async function getNumberSetting(key: string, defaultValue: number = 0): P
  * 检查用户注册是否开启
  */
 export async function isRegistrationEnabled(): Promise<boolean> {
-  return await getBooleanSetting('allow_user_registration', true)
+  return await getBooleanSetting('allow_user_registration', false)
 }
 
 /**

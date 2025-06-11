@@ -120,9 +120,9 @@ export default function SystemSetupWizard() {
   })
   
   const [systemSettings, setSystemSettings] = useState<SystemSettings>({
-    siteName: 'TN-SCXD-5.0',
-    siteDescription: '专业的系统开发模板',
-    allowUserRegistration: true,
+    siteName: '攀岩装备商城',
+    siteDescription: '专业的攀岩装备在线商城，提供各类攀岩用品和装备。',
+    allowUserRegistration: false,
     requireEmailVerification: false,
     defaultUserRole: 'customer',
     maintenanceMode: false
@@ -504,7 +504,9 @@ export default function SystemSetupWizard() {
         { key: 'default_user_role', value: systemSettings.defaultUserRole, category: 'user', description: '默认用户角色', data_type: 'string', is_public: false },
         { key: 'maintenance_mode', value: systemSettings.maintenanceMode.toString(), category: 'system', description: '维护模式', data_type: 'boolean', is_public: false },
         { key: 'admin_email', value: adminAccount.email, category: 'admin', description: '管理员邮箱', data_type: 'string', is_public: false },
-        { key: 'setup_date', value: new Date().toISOString(), category: 'system', description: '系统初始化时间', data_type: 'string', is_public: false }
+        { key: 'setup_date', value: new Date().toISOString(), category: 'system', description: '系统初始化时间', data_type: 'string', is_public: false },
+        { key: 'max_users_per_day', value: '10', category: 'user', description: '每日最大注册用户数', data_type: 'number', is_public: false },
+        { key: 'registration_message', value: '系统暂时关闭了用户注册功能，请联系管理员', category: 'user', description: '注册关闭提示信息', data_type: 'string', is_public: true }
       ]
 
       for (const setting of settingsEntries) {
@@ -889,7 +891,7 @@ export default function SystemSetupWizard() {
               className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
             />
             <label className="ml-3 block text-sm font-medium text-gray-700">
-              允许用户注册
+              允许用户注册 <span className="text-gray-500">(默认禁用，建议仅管理员创建用户)</span>
             </label>
           </div>
 

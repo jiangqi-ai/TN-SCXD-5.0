@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import { createSupabaseClient } from '@/lib/supabase'
 import AdminLayout from '@/components/AdminLayout'
-import { Search, Edit, Shield, User, Crown } from 'lucide-react'
+import { Search, Edit, Shield, User, Crown, Plus, Eye, EyeOff } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 interface UserProfile {
   id: string
@@ -14,11 +15,29 @@ interface UserProfile {
   updated_at: string
 }
 
+interface NewUser {
+  email: string
+  password: string
+  confirmPassword: string
+  fullName: string
+  role: 'customer' | 'admin'
+}
+
 export default function UsersPage() {
   const [users, setUsers] = useState<UserProfile[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedRole, setSelectedRole] = useState('all')
+  const [showCreateForm, setShowCreateForm] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const [newUser, setNewUser] = useState<NewUser>({
+    email: '',
+    password: '',
+    confirmPassword: '',
+    fullName: '',
+    role: 'customer'
+  })
   const supabase = createSupabaseClient()
 
   useEffect(() => {
@@ -53,9 +72,75 @@ export default function UsersPage() {
 
       if (error) throw error
       await fetchUsers()
+      toast.success('用户角色更新成功')
     } catch (error) {
       console.error('Error updating user role:', error)
-      alert('更新用户角色失败')
+      toast.error('更新用户角色失败')
+    }
+  }
+
+  const handleCreateUser = async () => {
+    if (newUser.password !== newUser.confirmPassword) {
+      toast.error('密码确认不匹配')
+      return
+    }
+
+    if (newUser.password.length < 6) {
+      toast.error('密码至少需要6个字符')
+      return
+    }
+
+    if (!newUser.email || !newUser.fullName) {
+      toast.error('请填写完整信息')
+      return
+    }
+
+    setCreating(true)
+    try {
+      // 创建认证用户
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: newUser.email,
+        password: newUser.password,
+      })
+
+      if (authError) throw authError
+
+      if (authData.user) {
+        // 创建用户资料
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert([{
+            id: authData.user.id,
+            email: newUser.email,
+            full_name: newUser.fullName,
+            role: newUser.role,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }])
+
+        if (profileError) throw profileError
+
+        toast.success('用户创建成功！')
+        setNewUser({
+          email: '',
+          password: '',
+          confirmPassword: '',
+          fullName: '',
+          role: 'customer'
+        })
+        setShowCreateForm(false)
+        await fetchUsers()
+      }
+
+    } catch (error: any) {
+      console.error('创建用户失败:', error)
+      if (error.code === '23505') {
+        toast.error('该邮箱已被使用')
+      } else {
+        toast.error(`创建失败: ${error.message || '未知错误'}`)
+      }
+    } finally {
+      setCreating(false)
     }
   }
 
@@ -134,6 +219,16 @@ export default function UsersPage() {
             <p className="mt-2 text-sm text-gray-700">
               管理系统中的所有用户信息和权限
             </p>
+          </div>
+          <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
+            <button
+              type="button"
+              onClick={() => setShowCreateForm(true)}
+              className="inline-flex items-center justify-center rounded-md border border-transparent bg-primary-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 sm:w-auto"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              创建用户
+            </button>
           </div>
         </div>
 

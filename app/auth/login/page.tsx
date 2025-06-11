@@ -56,10 +56,7 @@ export default function LoginPage() {
             登录您的账户
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            还没有账户？{' '}
-            <Link href="/auth/register" className="font-medium text-primary-600 hover:text-primary-500">
-              立即注册
-            </Link>
+            请使用管理员账户登录系统
           </p>
         </div>
         

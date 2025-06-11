@@ -154,7 +154,8 @@ export default function AdminSettings() {
       }
     })
 
-    return Object.values(categories).filter(cat => cat.settings.length > 0)
+    // 确保用户设置分类存在，即使没有设置项也显示
+    return Object.values(categories)
   }
 
   const renderSettingValue = (setting: Setting) => {
@@ -342,6 +343,7 @@ export default function AdminSettings() {
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 >
                   <option value="general">常规设置</option>
+                  <option value="user">用户设置</option>
                   <option value="database">数据库配置</option>
                   <option value="contact">联系信息</option>
                   <option value="shipping">配送设置</option>

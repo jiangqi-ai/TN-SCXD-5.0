@@ -164,12 +164,6 @@ export default function Navigation() {
                 >
                   登录
                 </Link>
-                <Link
-                  href="/auth/register"
-                  className="btn-primary"
-                >
-                  注册
-                </Link>
               </div>
             )}
           </div>
