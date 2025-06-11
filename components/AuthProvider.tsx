@@ -44,9 +44,30 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   }
 
   const signOut = async () => {
-    await supabase.auth.signOut()
-    setUser(null)
-    setProfile(null)
+    try {
+      const { error } = await supabase.auth.signOut()
+      if (error) {
+        console.error('退出登录失败:', error)
+        throw error
+      }
+      
+      // 清除状态
+      setUser(null)
+      setProfile(null)
+      
+      // 清除本地存储
+      localStorage.removeItem('supabase.auth.token')
+      
+      // 强制刷新页面以确保所有状态都被清除
+      window.location.href = '/'
+      
+    } catch (error) {
+      console.error('退出登录时发生错误:', error)
+      // 即使发生错误，也尝试清除状态
+      setUser(null)
+      setProfile(null)
+      window.location.href = '/'
+    }
   }
 
   useEffect(() => {
