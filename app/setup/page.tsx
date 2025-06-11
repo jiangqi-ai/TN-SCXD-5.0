@@ -288,6 +288,7 @@ export default function SystemSetupWizard() {
     let retryCount = 0
     const maxRetries = 2
     const retryDelay = 2000 // 2秒延迟
+    const timeout = 5000 // 5秒超时
 
     try {
       // 验证URL格式
@@ -309,12 +310,23 @@ export default function SystemSetupWizard() {
           const { createTestClient } = await import('@/lib/supabase')
           const testClient = createTestClient(dbConfig.db_url, dbConfig.db_anon_key)
           
-          // 使用更简单的健康检查
-          const { data, error } = await testClient
+          // 创建一个超时Promise
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('连接超时')), timeout)
+          })
+
+          // 使用Promise.race实现超时控制
+          const connectionPromise = testClient
             .from('settings')
             .select('count')
             .limit(1)
-            .timeout(5000)
+
+          const result = await Promise.race([
+            connectionPromise,
+            timeoutPromise
+          ])
+
+          const { error } = result as any
 
           if (error) {
             console.error(`第${retryCount + 1}次连接尝试失败:`, error.message)
@@ -326,7 +338,7 @@ export default function SystemSetupWizard() {
           toast.success('数据库连接测试成功！')
           return true
 
-        } catch (error) {
+        } catch (error: any) {
           retryCount++
           if (retryCount <= maxRetries) {
             console.log(`等待${retryDelay/1000}秒后重试...`)
@@ -336,7 +348,10 @@ export default function SystemSetupWizard() {
           }
         }
       }
-    } catch (error) {
+
+      return false
+
+    } catch (error: any) {
       console.error('数据库连接测试失败:', error)
       toast.error(error.message)
       return false
@@ -1107,5 +1122,4 @@ export default function SystemSetupWizard() {
       </div>
     </div>
   )
-} 
 } 
