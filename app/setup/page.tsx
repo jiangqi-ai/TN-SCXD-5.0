@@ -271,17 +271,33 @@ export default function SystemSetupWizard() {
     ))
   }
 
+  const validateDatabaseUrl = (url: string) => {
+    try {
+      const parsedUrl = new URL(url)
+      if (!parsedUrl.hostname || !parsedUrl.protocol) {
+        return '数据库URL格式无效，请输入完整的URL地址'
+      }
+      return null
+    } catch (error) {
+      return '数据库URL格式无效，请检查输入'
+    }
+  }
+
   const testDatabaseConnection = async () => {
     setTesting(true)
     
-    // 创建一个超时Promise
-    const timeout = new Promise((_, reject) => {
-      setTimeout(() => {
-        reject(new Error('连接测试超时，请检查数据库URL是否正确'))
-      }, 10000) // 10秒超时
-    })
-
     try {
+      // 验证URL格式
+      const urlError = validateDatabaseUrl(dbConfig.db_url)
+      if (urlError) {
+        throw new Error(urlError)
+      }
+
+      // 验证anon key格式
+      if (!dbConfig.db_anon_key || dbConfig.db_anon_key.length < 20) {
+        throw new Error('无效的数据库密钥，请检查anon key是否正确')
+      }
+
       // 使用用户配置的URL和密钥创建新的supabase客户端进行测试
       const { createClient } = await import('@supabase/supabase-js')
       const testClient = createClient(dbConfig.db_url, dbConfig.db_anon_key, {
@@ -290,27 +306,38 @@ export default function SystemSetupWizard() {
           persistSession: false
         }
       })
-      
-      // 使用Promise.race来实现超时控制
-      await Promise.race([
-        (async () => {
+
+      let retryCount = 0
+      const maxRetries = 2
+
+      while (retryCount <= maxRetries) {
+        try {
+          console.log(`尝试连接数据库... 第${retryCount + 1}次`)
+          
           // 测试数据库连接
-          const { error: healthCheckError } = await testClient.rpc('version')
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('连接超时')), 5000)
+          })
+
+          const healthCheckPromise = testClient.rpc('version')
+          const raceResult = await Promise.race([healthCheckPromise, timeoutPromise])
+          const { error: healthCheckError } = raceResult as { error: any }
           
           if (healthCheckError) {
-            console.error('健康检查失败:', healthCheckError)
             throw new Error('数据库连接失败: 无法连接到数据库服务')
           }
 
-          // 测试settings表访问权限
-          const { error: settingsError } = await testClient
+          // 如果成功，继续测试表访问权限
+          const settingsPromise = testClient
             .from('settings')
             .select('count')
             .limit(1)
             .single()
 
+          const settingsResult = await Promise.race([settingsPromise, timeoutPromise])
+          const { error: settingsError } = settingsResult as { error: any }
+
           if (settingsError) {
-            console.error('设置表访问失败:', settingsError)
             if (settingsError.code === 'PGRST301') {
               throw new Error('数据库表访问失败: 权限不足，请检查数据库密钥是否正确')
             } else if (settingsError.code === 'PGRST204') {
@@ -319,9 +346,21 @@ export default function SystemSetupWizard() {
               throw new Error(`数据库表访问失败: ${settingsError.message}`)
             }
           }
-        })(),
-        timeout
-      ])
+
+          // 如果成功，跳出重试循环
+          console.log('数据库连接成功！')
+          break
+
+        } catch (error: any) {
+          console.error(`第${retryCount + 1}次连接尝试失败:`, error.message)
+          if (retryCount === maxRetries) {
+            throw new Error(`数据库连接失败 (已重试${maxRetries}次): ${error.message}`)
+          }
+          retryCount++
+          // 等待1秒后重试
+          await new Promise(resolve => setTimeout(resolve, 1000))
+        }
+      }
 
       toast.success('数据库连接测试成功！')
 
