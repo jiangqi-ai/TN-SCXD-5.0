@@ -8,11 +8,15 @@ let supabaseClient: ReturnType<typeof createClient<Database>> | null = null
 export function createSupabaseClient() {
   if (supabaseClient) return supabaseClient
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Missing Supabase environment variables')
+  // 在生产环境中，如果没有环境变量，返回一个模拟客户端
+  if (process.env.NODE_ENV === 'production' && (!supabaseUrl || !supabaseAnonKey)) {
+    console.warn('Supabase environment variables are missing in production')
+    return createClient('https://placeholder.supabase.co', 'placeholder-key', {
+      auth: { persistSession: false }
+    })
   }
 
   supabaseClient = createClient<Database>(supabaseUrl, supabaseAnonKey, {

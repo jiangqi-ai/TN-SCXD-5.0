@@ -1,7 +1,27 @@
 import { createSupabaseClient } from '@/lib/supabase'
 import { NextResponse } from 'next/server'
 
+// 检查环境变量是否配置
+function checkEnvironmentVariables() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return {
+      error: true,
+      message: 'Supabase configuration is missing. Please check environment variables.'
+    }
+  }
+  return { error: false }
+}
+
 export async function GET() {
+  // 检查环境变量
+  const envCheck = checkEnvironmentVariables()
+  if (envCheck.error) {
+    return NextResponse.json({ error: envCheck.message }, { status: 500 })
+  }
+
   try {
     const supabase = createSupabaseClient()
     
@@ -27,6 +47,12 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  // 检查环境变量
+  const envCheck = checkEnvironmentVariables()
+  if (envCheck.error) {
+    return NextResponse.json({ error: envCheck.message }, { status: 500 })
+  }
+
   try {
     const { email, password, fullName } = await request.json()
     
