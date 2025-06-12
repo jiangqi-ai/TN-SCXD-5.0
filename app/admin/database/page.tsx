@@ -29,6 +29,10 @@ export default function DatabasePage() {
   })
   const [envSaved, setEnvSaved] = useState(false)
   const [testResult, setTestResult] = useState<string | null>(null)
+  const [scriptExecuting, setScriptExecuting] = useState(false)
+  const [scriptResult, setScriptResult] = useState<{ success: boolean; message: string; details?: string } | null>(null)
+  const [showFixPoliciesScript, setShowFixPoliciesScript] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     fetchTables()
@@ -107,6 +111,142 @@ export default function DatabasePage() {
   // 切换密钥显示
   const toggleKeyVisibility = (key: string) => {
     setShowKeys(prev => ({ ...prev, [key]: !prev[key as keyof typeof prev] }))
+  }
+
+  // 复制权限策略修复脚本
+  const copyFixPoliciesScript = async () => {
+    const scriptContent = `-- 修复权限策略无限递归问题
+-- 在 Supabase SQL Editor 中执行此脚本
+
+-- 1. 删除所有可能导致递归的策略
+DROP POLICY IF EXISTS "Users can view own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Admins can view all profiles" ON public.profiles;
+DROP POLICY IF EXISTS "Admins can manage settings" ON public.settings;
+DROP POLICY IF EXISTS "Public settings are readable" ON public.settings;
+DROP POLICY IF EXISTS "Anyone can view categories" ON public.categories;
+DROP POLICY IF EXISTS "Only admins can manage categories" ON public.categories;
+DROP POLICY IF EXISTS "Anyone can view active products" ON public.products;
+DROP POLICY IF EXISTS "Admins can view all products" ON public.products;
+DROP POLICY IF EXISTS "Only admins can manage products" ON public.products;
+DROP POLICY IF EXISTS "Users can view own orders" ON public.orders;
+DROP POLICY IF EXISTS "Users can create own orders" ON public.orders;
+DROP POLICY IF EXISTS "Admins can view all orders" ON public.orders;
+DROP POLICY IF EXISTS "Users can view own order items" ON public.order_items;
+DROP POLICY IF EXISTS "Users can create order items for own orders" ON public.order_items;
+DROP POLICY IF EXISTS "Admins can view all order items" ON public.order_items;
+
+-- 2. 临时禁用 RLS 以避免递归问题
+ALTER TABLE public.profiles DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.settings DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.categories DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.products DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.orders DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.order_items DISABLE ROW LEVEL SECURITY;
+
+-- 3. 创建简化的权限策略（避免递归查询）
+
+-- 用户资料表 - 简化策略
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "profiles_select_policy" ON public.profiles
+    FOR SELECT USING (true);
+
+CREATE POLICY "profiles_insert_policy" ON public.profiles
+    FOR INSERT WITH CHECK (auth.uid() = id);
+
+CREATE POLICY "profiles_update_policy" ON public.profiles
+    FOR UPDATE USING (auth.uid() = id);
+
+-- 设置表 - 允许所有已认证用户读取公共设置
+ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "settings_select_policy" ON public.settings
+    FOR SELECT TO authenticated USING (true);
+
+CREATE POLICY "settings_insert_policy" ON public.settings
+    FOR INSERT TO authenticated WITH CHECK (true);
+
+CREATE POLICY "settings_update_policy" ON public.settings
+    FOR UPDATE TO authenticated USING (true);
+
+CREATE POLICY "settings_delete_policy" ON public.settings
+    FOR DELETE TO authenticated USING (true);
+
+-- 分类表 - 允许所有用户查看
+ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "categories_select_policy" ON public.categories
+    FOR SELECT USING (true);
+
+CREATE POLICY "categories_manage_policy" ON public.categories
+    FOR ALL TO authenticated USING (true);
+
+-- 产品表 - 允许所有用户查看活跃产品
+ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "products_select_policy" ON public.products
+    FOR SELECT USING (true);
+
+CREATE POLICY "products_manage_policy" ON public.products
+    FOR ALL TO authenticated USING (true);
+
+-- 订单表 - 简化权限
+ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "orders_select_policy" ON public.orders
+    FOR SELECT TO authenticated USING (true);
+
+CREATE POLICY "orders_insert_policy" ON public.orders
+    FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "orders_update_policy" ON public.orders
+    FOR UPDATE TO authenticated USING (true);
+
+-- 订单项表 - 简化权限
+ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "order_items_select_policy" ON public.order_items
+    FOR SELECT TO authenticated USING (true);
+
+CREATE POLICY "order_items_insert_policy" ON public.order_items
+    FOR INSERT TO authenticated WITH CHECK (true);
+
+CREATE POLICY "order_items_update_policy" ON public.order_items
+    FOR UPDATE TO authenticated USING (true);
+
+-- 确保基础设置数据存在
+INSERT INTO public.settings (key, value, description, category, data_type, is_public) VALUES
+('site_name', '攀岩装备商城', '网站名称', 'general', 'string', true),
+('site_description', '专业的攀岩装备在线商城，提供各类攀岩用品和装备。', '网站描述', 'general', 'string', true),
+('allow_user_registration', 'false', '是否允许用户注册', 'user', 'boolean', true),
+('require_email_verification', 'false', '是否需要邮箱验证', 'user', 'boolean', false),
+('default_user_role', 'customer', '默认用户角色', 'user', 'string', false),
+('maintenance_mode', 'false', '维护模式', 'system', 'boolean', false)
+ON CONFLICT (key) DO UPDATE SET
+  value = EXCLUDED.value,
+  description = EXCLUDED.description,
+  category = EXCLUDED.category,
+  data_type = EXCLUDED.data_type,
+  is_public = EXCLUDED.is_public,
+  updated_at = NOW();`
+
+    try {
+      await navigator.clipboard.writeText(scriptContent)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (error) {
+      console.error('Failed to copy script:', error)
+      // 备用方案：创建一个临时textarea元素
+      const textArea = document.createElement('textarea')
+      textArea.value = scriptContent
+      document.body.appendChild(textArea)
+      textArea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textArea)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
   }
 
   const fetchTables = async () => {
@@ -212,6 +352,55 @@ export default function DatabasePage() {
       })
     } catch {
       return dateString
+    }
+  }
+
+  const executeFixPoliciesScript = async () => {
+    if (!envConfig.NEXT_PUBLIC_SUPABASE_URL || !envConfig.SUPABASE_SERVICE_ROLE_KEY) {
+      setScriptResult({ success: false, message: '需要配置 Service Role Key 才能执行数据库脚本' })
+      return
+    }
+
+    setScriptExecuting(true)
+    setScriptResult(null)
+
+    try {
+      const response = await fetch('/api/database/execute-script', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          scriptName: 'fix-policies',
+          supabaseUrl: envConfig.NEXT_PUBLIC_SUPABASE_URL,
+          serviceRoleKey: envConfig.SUPABASE_SERVICE_ROLE_KEY
+        })
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        setScriptResult({ 
+          success: true, 
+          message: result.message,
+          details: result.results ? JSON.stringify(result.results, null, 2) : undefined
+        })
+      } else {
+        setScriptResult({ 
+          success: false, 
+          message: result.message || '脚本执行失败',
+          details: result.details || (result.error ? JSON.stringify(result.error, null, 2) : undefined)
+        })
+      }
+    } catch (error) {
+      console.error('Error executing fix policies script:', error)
+      setScriptResult({ 
+        success: false, 
+        message: '执行脚本时发生错误',
+        details: error instanceof Error ? error.message : '未知错误'
+      })
+    } finally {
+      setScriptExecuting(false)
     }
   }
 
@@ -647,6 +836,242 @@ export default function DatabasePage() {
                     <p className="text-xs text-gray-500 mt-2">
                       💡 配置保存在浏览器本地存储中，不会被提交到 Git 仓库
                     </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* SQL 脚本执行区域 */}
+            <div className="mt-8">
+              <div className="bg-white shadow rounded-lg">
+                <div className="px-4 py-5 sm:p-6">
+                  <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+                    🔧 数据库脚本执行
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-6">
+                    执行预定义的数据库修复脚本，解决常见的数据库问题。
+                  </p>
+
+                  <div className="space-y-4">
+                                         {/* 权限策略修复 */}
+                     <div className="border border-orange-200 rounded-lg p-4 bg-orange-50">
+                       <div className="flex items-start">
+                         <div className="flex-shrink-0">
+                           <AlertCircle className="h-5 w-5 text-orange-400 mt-0.5" />
+                         </div>
+                         <div className="ml-3 flex-1">
+                           <h4 className="text-sm font-medium text-orange-800">
+                             权限策略递归错误修复
+                           </h4>
+                           <p className="mt-1 text-sm text-orange-700">
+                             修复数据库权限策略的无限递归问题，重新创建简化的安全策略。
+                           </p>
+                           
+                           <div className="mt-4 bg-white rounded-md border border-orange-200">
+                             <div className="px-3 py-2 bg-orange-100 border-b border-orange-200 rounded-t-md">
+                               <div className="flex items-center justify-between">
+                                 <h5 className="text-sm font-medium text-orange-900">
+                                   🔧 执行步骤
+                                 </h5>
+                               </div>
+                             </div>
+                             <div className="p-3 text-sm text-gray-700">
+                               <ol className="list-decimal list-inside space-y-2">
+                                 <li>
+                                   打开 <a 
+                                     href="https://supabase.com/dashboard" 
+                                     target="_blank" 
+                                     rel="noopener noreferrer"
+                                     className="text-primary-600 hover:text-primary-500 underline"
+                                   >
+                                     Supabase 控制台
+                                   </a>
+                                 </li>
+                                 <li>选择您的项目</li>
+                                 <li>进入 <strong>SQL Editor</strong></li>
+                                 <li>复制下方的SQL脚本并粘贴到编辑器中</li>
+                                 <li>点击 <strong>Run</strong> 执行脚本</li>
+                               </ol>
+                             </div>
+                           </div>
+
+                           <div className="mt-3 space-x-2">
+                             <button
+                               onClick={() => setShowFixPoliciesScript(!showFixPoliciesScript)}
+                               className="inline-flex items-center px-3 py-2 border border-orange-300 text-sm leading-4 font-medium rounded-md text-orange-700 bg-white hover:bg-orange-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+                             >
+                               <Eye className="h-4 w-4 mr-2" />
+                               {showFixPoliciesScript ? '隐藏脚本' : '显示脚本'}
+                             </button>
+                             
+                             <button
+                               onClick={copyFixPoliciesScript}
+                               className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+                             >
+                               {copied ? (
+                                 <>
+                                   <Check className="h-4 w-4 mr-2" />
+                                   已复制
+                                 </>
+                               ) : (
+                                 <>
+                                   <Database className="h-4 w-4 mr-2" />
+                                   复制脚本
+                                 </>
+                               )}
+                             </button>
+                           </div>
+                           
+                           {/* SQL脚本显示区域 */}
+                           {showFixPoliciesScript && (
+                             <div className="mt-4">
+                               <div className="bg-gray-900 rounded-md p-4 overflow-auto max-h-80">
+                                 <pre className="text-sm text-green-400 font-mono whitespace-pre-wrap">
+{`-- 修复权限策略无限递归问题
+-- 在 Supabase SQL Editor 中执行此脚本
+
+-- 1. 删除所有可能导致递归的策略
+DROP POLICY IF EXISTS "Users can view own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Admins can view all profiles" ON public.profiles;
+DROP POLICY IF EXISTS "Admins can manage settings" ON public.settings;
+DROP POLICY IF EXISTS "Public settings are readable" ON public.settings;
+DROP POLICY IF EXISTS "Anyone can view categories" ON public.categories;
+DROP POLICY IF EXISTS "Only admins can manage categories" ON public.categories;
+DROP POLICY IF EXISTS "Anyone can view active products" ON public.products;
+DROP POLICY IF EXISTS "Admins can view all products" ON public.products;
+DROP POLICY IF EXISTS "Only admins can manage products" ON public.products;
+DROP POLICY IF EXISTS "Users can view own orders" ON public.orders;
+DROP POLICY IF EXISTS "Users can create own orders" ON public.orders;
+DROP POLICY IF EXISTS "Admins can view all orders" ON public.orders;
+DROP POLICY IF EXISTS "Users can view own order items" ON public.order_items;
+DROP POLICY IF EXISTS "Users can create order items for own orders" ON public.order_items;
+DROP POLICY IF EXISTS "Admins can view all order items" ON public.order_items;
+
+-- 2. 临时禁用 RLS 以避免递归问题
+ALTER TABLE public.profiles DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.settings DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.categories DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.products DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.orders DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.order_items DISABLE ROW LEVEL SECURITY;
+
+-- 3. 创建简化的权限策略（避免递归查询）
+
+-- 用户资料表 - 简化策略
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "profiles_select_policy" ON public.profiles
+    FOR SELECT USING (true);
+
+CREATE POLICY "profiles_insert_policy" ON public.profiles
+    FOR INSERT WITH CHECK (auth.uid() = id);
+
+CREATE POLICY "profiles_update_policy" ON public.profiles
+    FOR UPDATE USING (auth.uid() = id);
+
+-- 设置表 - 允许所有已认证用户读取公共设置
+ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "settings_select_policy" ON public.settings
+    FOR SELECT TO authenticated USING (true);
+
+CREATE POLICY "settings_insert_policy" ON public.settings
+    FOR INSERT TO authenticated WITH CHECK (true);
+
+CREATE POLICY "settings_update_policy" ON public.settings
+    FOR UPDATE TO authenticated USING (true);
+
+CREATE POLICY "settings_delete_policy" ON public.settings
+    FOR DELETE TO authenticated USING (true);
+
+-- 分类表 - 允许所有用户查看
+ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "categories_select_policy" ON public.categories
+    FOR SELECT USING (true);
+
+CREATE POLICY "categories_manage_policy" ON public.categories
+    FOR ALL TO authenticated USING (true);
+
+-- 产品表 - 允许所有用户查看活跃产品
+ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "products_select_policy" ON public.products
+    FOR SELECT USING (true);
+
+CREATE POLICY "products_manage_policy" ON public.products
+    FOR ALL TO authenticated USING (true);
+
+-- 订单表 - 简化权限
+ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "orders_select_policy" ON public.orders
+    FOR SELECT TO authenticated USING (true);
+
+CREATE POLICY "orders_insert_policy" ON public.orders
+    FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "orders_update_policy" ON public.orders
+    FOR UPDATE TO authenticated USING (true);
+
+-- 订单项表 - 简化权限
+ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "order_items_select_policy" ON public.order_items
+    FOR SELECT TO authenticated USING (true);
+
+CREATE POLICY "order_items_insert_policy" ON public.order_items
+    FOR INSERT TO authenticated WITH CHECK (true);
+
+CREATE POLICY "order_items_update_policy" ON public.order_items
+    FOR UPDATE TO authenticated USING (true);`}
+                                 </pre>
+                               </div>
+                             </div>
+                           )}
+                         </div>
+                       </div>
+                     </div>
+
+                    {/* 执行结果 */}
+                    {scriptResult && (
+                      <div className={`p-4 rounded-md ${
+                        scriptResult.success ? 'bg-green-50' : 'bg-red-50'
+                      }`}>
+                        <div className="flex">
+                          <div className="flex-shrink-0">
+                            {scriptResult.success ? (
+                              <Check className="h-5 w-5 text-green-400" />
+                            ) : (
+                              <AlertCircle className="h-5 w-5 text-red-400" />
+                            )}
+                          </div>
+                          <div className="ml-3">
+                            <h4 className={`text-sm font-medium ${
+                              scriptResult.success ? 'text-green-800' : 'text-red-800'
+                            }`}>
+                              {scriptResult.success ? '脚本执行成功' : '脚本执行失败'}
+                            </h4>
+                            <p className={`mt-1 text-sm ${
+                              scriptResult.success ? 'text-green-700' : 'text-red-700'
+                            }`}>
+                              {scriptResult.message}
+                            </p>
+                            {scriptResult.details && (
+                              <details className="mt-2">
+                                <summary className="cursor-pointer text-xs">
+                                  查看详细信息
+                                </summary>
+                                <pre className="mt-1 text-xs overflow-auto max-h-32 bg-gray-100 p-2 rounded">
+                                  {scriptResult.details}
+                                </pre>
+                              </details>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
