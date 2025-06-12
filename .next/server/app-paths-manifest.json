@@ -1,1 +1,7 @@
-{}
+{
+  "/admin/database/page": "app/admin/database/page.js",
+  "/page": "app/page.js",
+  "/setup/page": "app/setup/page.js",
+  "/setup/database-guide/page": "app/setup/database-guide/page.js",
+  "/not-found": "app/not-found.js"
+}
