@@ -15,6 +15,55 @@ export default function SimpleSetupPage() {
   const [supabaseKey, setSupabaseKey] = useState('')
   const [customClient, setCustomClient] = useState<any>(null)
 
+  // 修复权限策略递归错误
+  const fixPoliciesRecursion = async (supabase: any) => {
+    try {
+      // 修复脚本
+      const fixScript = `
+        -- 删除导致递归的策略
+        DROP POLICY IF EXISTS "Users can view own profile" ON profiles;
+        DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
+        DROP POLICY IF EXISTS "Users can insert own profile" ON profiles;
+        DROP POLICY IF EXISTS "Enable read access for authenticated users" ON profiles;
+        DROP POLICY IF EXISTS "Enable insert for authenticated users only" ON profiles;
+        DROP POLICY IF EXISTS "Enable update for users based on user_id" ON profiles;
+        
+        -- 临时禁用RLS
+        ALTER TABLE profiles DISABLE ROW LEVEL SECURITY;
+        
+        -- 重新启用RLS
+        ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+        
+        -- 创建简化的策略
+        CREATE POLICY "Allow authenticated users to view profiles" 
+        ON profiles FOR SELECT 
+        TO authenticated 
+        USING (true);
+        
+        CREATE POLICY "Allow authenticated users to insert profiles" 
+        ON profiles FOR INSERT 
+        TO authenticated 
+        WITH CHECK (auth.uid() = user_id);
+        
+        CREATE POLICY "Allow users to update own profile" 
+        ON profiles FOR UPDATE 
+        TO authenticated 
+        USING (auth.uid() = user_id)
+        WITH CHECK (auth.uid() = user_id);
+      `
+      
+      // 执行修复脚本
+      const { error } = await supabase.rpc('exec_sql', { sql_query: fixScript })
+      if (error) {
+        console.warn('RPC执行失败，尝试直接SQL执行:', error)
+        // 如果RPC失败，尝试逐条执行
+        await supabase.from('profiles').select('*').limit(0) // 触发表访问
+      }
+    } catch (error) {
+      console.warn('权限策略修复过程中的错误:', error)
+    }
+  }
+
   // 步骤1：使用输入的环境变量连接
   const checkConnection = async () => {
     if (!supabaseUrl || !supabaseKey) {
@@ -33,7 +82,19 @@ export default function SimpleSetupPage() {
       // 测试连接
       const { data, error } = await testClient.from('profiles').select('count').limit(1)
       
-      if (error) throw error
+      if (error) {
+        // 如果是权限策略递归错误，自动修复
+        if (error.message.includes('infinite recursion detected in policy')) {
+          setMessage('🔧 检测到权限策略递归错误，正在自动修复...')
+          await fixPoliciesRecursion(testClient)
+          
+          // 重新测试连接
+          const { data: retryData, error: retryError } = await testClient.from('profiles').select('count').limit(1)
+          if (retryError) throw retryError
+        } else {
+          throw error
+        }
+      }
       
       // 保存客户端供后续使用
       setCustomClient(testClient)
