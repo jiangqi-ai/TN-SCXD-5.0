@@ -1,12 +1,9 @@
-import { createSupabaseClient } from '@/lib/supabase'
+import { createSupabaseClient, isSupabaseConfigured } from '@/lib/supabase'
 import { NextResponse } from 'next/server'
 
 // 检查环境变量是否配置
 function checkEnvironmentVariables() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-  if (!supabaseUrl || !supabaseAnonKey) {
+  if (!isSupabaseConfigured()) {
     return {
       error: true,
       message: 'Supabase configuration is missing. Please check environment variables.'

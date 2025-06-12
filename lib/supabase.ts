@@ -12,12 +12,22 @@ export function createSupabaseClient(): TypedSupabaseClient {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
+  // 在构建时或环境变量缺失时，创建一个占位符客户端
   if (!supabaseUrl || !supabaseAnonKey) {
-    console.error('❌ Supabase环境变量缺失!')
-    console.error('请在Vercel中配置以下环境变量:')
-    console.error('- NEXT_PUBLIC_SUPABASE_URL')
-    console.error('- NEXT_PUBLIC_SUPABASE_ANON_KEY')
-    throw new Error('Supabase环境变量缺失，请检查配置')
+    console.warn('⚠️ Supabase环境变量缺失，使用占位符客户端')
+    
+    supabaseClient = createClient<Database>(
+      'https://placeholder.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder',
+      {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+          detectSessionInUrl: false
+        }
+      }
+    )
+    return supabaseClient
   }
 
   console.log('✅ 创建Supabase客户端:', supabaseUrl)
@@ -35,6 +45,17 @@ export function createSupabaseClient(): TypedSupabaseClient {
   )
 
   return supabaseClient
+}
+
+// 检查环境变量是否配置正确
+export function isSupabaseConfigured(): boolean {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  
+  return !!(supabaseUrl && 
+           supabaseAnonKey && 
+           supabaseUrl !== 'https://placeholder.supabase.co' &&
+           supabaseAnonKey !== 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder')
 }
 
 // 默认客户端实例
