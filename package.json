@@ -7,7 +7,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "security-check": "powershell -ExecutionPolicy Bypass -File scripts/pre-commit-check.ps1",
+    "security-check-bash": "bash scripts/pre-commit-check.sh"
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.1",
