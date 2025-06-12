@@ -9,28 +9,38 @@ export default function SimpleSetupPage() {
   const [adminEmail, setAdminEmail] = useState('')
   const [setupComplete, setSetupComplete] = useState(false)
   const [message, setMessage] = useState('')
+  
+  // 环境变量输入
+  const [supabaseUrl, setSupabaseUrl] = useState('')
+  const [supabaseKey, setSupabaseKey] = useState('')
+  const [customClient, setCustomClient] = useState(null)
 
-  // 步骤1：检查Supabase连接
+  // 步骤1：使用输入的环境变量连接
   const checkConnection = async () => {
-    setLoading(true)
-    setMessage('')
-    
-    if (!isSupabaseConfigured()) {
-      setMessage('❌ 请先在Vercel中配置Supabase环境变量')
-      setLoading(false)
+    if (!supabaseUrl || !supabaseKey) {
+      setMessage('请输入Supabase URL和密钥')
       return
     }
 
+    setLoading(true)
+    setMessage('')
+
     try {
-      const supabase = createSupabaseClient()
-      const { data, error } = await supabase.from('profiles').select('count').limit(1)
+      // 创建临时客户端测试连接
+      const { createClient } = await import('@supabase/supabase-js')
+      const testClient = createClient(supabaseUrl, supabaseKey)
+      
+      // 测试连接
+      const { data, error } = await testClient.from('profiles').select('count').limit(1)
       
       if (error) throw error
       
+      // 保存客户端供后续使用
+      setCustomClient(testClient)
       setMessage('✅ Supabase连接成功！')
       setStep(2)
-    } catch (error) {
-      setMessage('❌ 连接失败，请检查配置')
+    } catch (error: any) {
+      setMessage(`❌ 连接失败: ${error.message}`)
     }
     setLoading(false)
   }
@@ -46,7 +56,8 @@ export default function SimpleSetupPage() {
     setMessage('')
 
     try {
-      const supabase = createSupabaseClient()
+      // 使用之前创建的客户端
+      const supabase = customClient || createSupabaseClient()
       
       // 使用Supabase的邀请功能
       const { data, error } = await supabase.auth.admin.inviteUserByEmail(adminEmail, {
@@ -72,7 +83,7 @@ export default function SimpleSetupPage() {
     setMessage('')
 
     try {
-      const supabase = createSupabaseClient()
+      const supabase = customClient || createSupabaseClient()
       
       // 创建基础分类
       const categories = [
@@ -163,27 +174,64 @@ export default function SimpleSetupPage() {
                 </div>
               ))}
             </div>
-            <div className="flex justify-between text-xs text-gray-600 mt-2">
-              <span>连接数据库</span>
-              <span>管理员邀请</span>
-              <span>系统初始化</span>
-            </div>
+                         <div className="flex justify-between text-xs text-gray-600 mt-2">
+               <span>配置连接</span>
+               <span>管理员邀请</span>
+               <span>系统初始化</span>
+             </div>
           </div>
 
           {/* 步骤内容 */}
           <div className="space-y-6">
             {step === 1 && (
               <div>
-                <h2 className="text-lg font-semibold mb-4">步骤1: 检查数据库连接</h2>
+                <h2 className="text-lg font-semibold mb-4">步骤1: 配置Supabase连接</h2>
                 <p className="text-gray-600 mb-4">
-                  确保Supabase数据库连接正常
+                  输入您的Supabase项目信息
                 </p>
+                
+                <div className="space-y-4 mb-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Supabase项目URL
+                    </label>
+                    <input
+                      type="url"
+                      value={supabaseUrl}
+                      onChange={(e) => setSupabaseUrl(e.target.value)}
+                      placeholder="https://your-project-id.supabase.co"
+                      className="w-full p-3 border border-gray-300 rounded"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Supabase Anon Key
+                    </label>
+                    <textarea
+                      value={supabaseKey}
+                      onChange={(e) => setSupabaseKey(e.target.value)}
+                      placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                      className="w-full p-3 border border-gray-300 rounded h-24 text-sm"
+                    />
+                  </div>
+                  
+                  <div className="bg-blue-50 p-3 rounded text-sm">
+                    <p className="font-medium text-blue-800 mb-1">📋 获取方式：</p>
+                    <ol className="text-blue-700 space-y-1 list-decimal list-inside">
+                      <li>访问 <a href="https://supabase.com/dashboard" target="_blank" className="underline">Supabase控制台</a></li>
+                      <li>选择项目 → Settings → API</li>
+                      <li>复制Project URL和anon public key</li>
+                    </ol>
+                  </div>
+                </div>
+                
                 <button
                   onClick={checkConnection}
-                  disabled={loading}
+                  disabled={loading || !supabaseUrl || !supabaseKey}
                   className="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 disabled:opacity-50"
                 >
-                  {loading ? '检查中...' : '检查连接'}
+                  {loading ? '连接中...' : '测试连接'}
                 </button>
               </div>
             )}
@@ -238,15 +286,15 @@ export default function SimpleSetupPage() {
           </div>
 
           {/* 说明 */}
-          <div className="mt-8 p-4 bg-gray-50 rounded">
-            <h3 className="font-semibold mb-2">💡 配置说明</h3>
-            <ul className="text-sm text-gray-600 space-y-1">
-              <li>• 使用Supabase邀请功能，无需手动创建密码</li>
-              <li>• 管理员通过邮件链接完成注册</li>
-              <li>• 自动创建攀岩装备的基础分类</li>
-              <li>• 系统启动后即可开始接收订单</li>
-            </ul>
-          </div>
+                     <div className="mt-8 p-4 bg-gray-50 rounded">
+             <h3 className="font-semibold mb-2">💡 配置说明</h3>
+             <ul className="text-sm text-gray-600 space-y-1">
+               <li>• 直接在页面输入Supabase配置，无需Vercel设置</li>
+               <li>• 使用Supabase邀请功能，管理员邮件注册</li>
+               <li>• 自动创建攀岩装备的基础分类</li>
+               <li>• 配置完成即可开始接收订单</li>
+             </ul>
+           </div>
         </div>
       </div>
     </div>
