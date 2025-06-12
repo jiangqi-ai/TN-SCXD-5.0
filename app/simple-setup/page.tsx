@@ -33,7 +33,7 @@ export default function SimpleSetupPage() {
       const testClient = createClient(supabaseUrl, supabaseKey)
       
       // 测试连接
-      const { data, error } = await testClient.from('profiles').select('count').limit(1)
+      const { data, error } = await testClient.from('profiles').select('*').limit(1)
       
       if (error) {
         // 如果是权限策略递归错误，调用专门的修复API
@@ -49,13 +49,18 @@ export default function SimpleSetupPage() {
           const fixResult = await fixResponse.json()
           
           if (!fixResponse.ok) {
+            // 如果有SQL脚本，显示给用户
+            if (fixResult.sqlScript) {
+              setMessage(`❌ ${fixResult.error}\n\n📋 请手动执行以下SQL脚本：\n${fixResult.sqlScript}`)
+              return
+            }
             throw new Error(fixResult.error || '权限策略修复失败')
           }
           
           setMessage('✅ 权限策略修复成功，重新测试连接...')
           
           // 重新测试连接
-          const { data: retryData, error: retryError } = await testClient.from('profiles').select('count').limit(1)
+          const { data: retryData, error: retryError } = await testClient.from('profiles').select('*').limit(1)
           if (retryError) throw retryError
         } else {
           throw error
