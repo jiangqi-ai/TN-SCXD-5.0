@@ -13,7 +13,7 @@ export default function SimpleSetupPage() {
   // 环境变量输入
   const [supabaseUrl, setSupabaseUrl] = useState('')
   const [supabaseKey, setSupabaseKey] = useState('')
-  const [customClient, setCustomClient] = useState(null)
+  const [customClient, setCustomClient] = useState<any>(null)
 
   // 步骤1：使用输入的环境变量连接
   const checkConnection = async () => {
