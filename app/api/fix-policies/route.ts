@@ -94,20 +94,24 @@ export async function POST(request: NextRequest) {
             sqlScript: `
 -- 请在Supabase SQL编辑器中执行以下脚本：
 
--- 1. 删除所有可能导致递归的策略
+-- 1. 删除所有可能导致递归的策略（包括现有的策略）
 DROP POLICY IF EXISTS "Users can view own profile" ON profiles CASCADE;
 DROP POLICY IF EXISTS "Users can update own profile" ON profiles CASCADE;
 DROP POLICY IF EXISTS "Users can insert own profile" ON profiles CASCADE;
 DROP POLICY IF EXISTS "Enable read access for authenticated users" ON profiles CASCADE;
 DROP POLICY IF EXISTS "Enable insert for authenticated users only" ON profiles CASCADE;
 DROP POLICY IF EXISTS "Enable update for users based on user_id" ON profiles CASCADE;
+DROP POLICY IF EXISTS "allow_all_authenticated" ON profiles CASCADE;
+DROP POLICY IF EXISTS "profiles_select_policy" ON profiles CASCADE;
+DROP POLICY IF EXISTS "profiles_insert_policy" ON profiles CASCADE;
+DROP POLICY IF EXISTS "profiles_update_policy" ON profiles CASCADE;
 
 -- 2. 重置行级安全
 ALTER TABLE profiles DISABLE ROW LEVEL SECURITY;
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
--- 3. 创建简单的新策略
-CREATE POLICY "allow_all_authenticated" ON profiles 
+-- 3. 创建最简单的新策略
+CREATE POLICY "simple_profiles_policy" ON profiles 
 FOR ALL TO authenticated 
 USING (true) 
 WITH CHECK (true);
