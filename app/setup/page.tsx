@@ -528,44 +528,94 @@ export default function SystemSetupWizard() {
     }
 
     setLoading(true)
-    try {
-      // 创建认证用户
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: adminAccount.email,
-        password: adminAccount.password,
-      })
+    let retryCount = 0
+    const maxRetries = 3
+    const retryDelay = 2000
 
-      if (authError) throw authError
+    while (retryCount <= maxRetries) {
+      try {
+        console.log(`尝试创建管理员账户... 第${retryCount + 1}次`)
+        
+        // 确保使用正确配置的客户端
+        const { createTestClient } = await import('@/lib/supabase')
+        const adminClient = createTestClient(dbConfig.db_url, dbConfig.db_anon_key)
+        
+        // 创建认证用户
+        const { data: authData, error: authError } = await adminClient.auth.signUp({
+          email: adminAccount.email,
+          password: adminAccount.password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth/callback`
+          }
+        })
 
-      if (authData.user) {
-        // 创建用户资料
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([{
-            id: authData.user.id,
-            email: adminAccount.email,
-            full_name: adminAccount.fullName,
-            role: 'admin',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }])
+        if (authError) {
+          console.error(`第${retryCount + 1}次创建尝试失败:`, authError.message)
+          throw authError
+        }
 
-        if (profileError) throw profileError
+        if (authData.user) {
+          // 等待一下确保用户创建完成
+          await new Promise(resolve => setTimeout(resolve, 1000))
+          
+          // 创建用户资料
+          const { error: profileError } = await adminClient
+            .from('profiles')
+            .insert([{
+              id: authData.user.id,
+              email: adminAccount.email,
+              full_name: adminAccount.fullName,
+              role: 'admin',
+              is_active: true,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }])
 
-        updateStepStatus('admin', true)
-        toast.success('管理员账户创建成功！')
+          if (profileError) {
+            console.error('创建用户资料失败:', profileError)
+            throw profileError
+          }
+
+          updateStepStatus('admin', true)
+          toast.success('管理员账户创建成功！')
+          return true
+        }
+
+      } catch (error: any) {
+        retryCount++
+        console.error(`第${retryCount}次创建尝试失败:`, error)
+        
+        if (error.message?.includes('Failed to fetch') || error.name === 'AuthRetryableFetchError') {
+          if (retryCount <= maxRetries) {
+            toast.error(`网络连接失败，${retryDelay/1000}秒后重试... (${retryCount}/${maxRetries})`)
+            await new Promise(resolve => setTimeout(resolve, retryDelay))
+            continue
+          } else {
+            toast.error('网络连接失败，请检查网络后重试')
+            break
+          }
+        } else if (error.code === '23505') {
+          toast.error('该邮箱已被使用')
+          break
+        } else if (error.message?.includes('Email not confirmed')) {
+          toast.success('账户创建成功！请查看邮件并确认后登录')
+          updateStepStatus('admin', true)
+          return true
+        } else {
+          if (retryCount <= maxRetries) {
+            toast.error(`创建失败: ${error.message}，正在重试...`)
+            await new Promise(resolve => setTimeout(resolve, retryDelay))
+            continue
+          } else {
+            toast.error(`创建失败: ${error.message || '未知错误'}`)
+            break
+          }
+        }
       }
-
-    } catch (error: any) {
-      console.error('创建管理员账户失败:', error)
-      if (error.code === '23505') {
-        toast.error('该邮箱已被使用')
-      } else {
-        toast.error(`创建失败: ${error.message || '未知错误'}`)
-      }
-    } finally {
-      setLoading(false)
     }
+
+    setLoading(false)
+    return false
   }
 
   const saveSystemSettings = async () => {
@@ -665,14 +715,24 @@ export default function SystemSetupWizard() {
   const renderDatabaseStep = () => (
     <div className="space-y-6">
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <div className="flex items-start">
-          <Database className="h-5 w-5 text-blue-400 mr-3 mt-0.5" />
-          <div>
-            <h3 className="text-sm font-medium text-blue-800">数据库配置</h3>
-            <p className="mt-1 text-sm text-blue-700">
-              配置数据库连接参数和性能设置。URL和匿名密钥从环境变量读取。
-            </p>
+        <div className="flex items-start justify-between">
+          <div className="flex items-start">
+            <Database className="h-5 w-5 text-blue-400 mr-3 mt-0.5" />
+            <div>
+              <h3 className="text-sm font-medium text-blue-800">数据库配置</h3>
+              <p className="mt-1 text-sm text-blue-700">
+                配置数据库连接参数和性能设置。URL和匿名密钥从环境变量读取。
+              </p>
+            </div>
           </div>
+          <a
+            href="/setup/diagnostic"
+            target="_blank"
+            className="inline-flex items-center px-3 py-1.5 border border-blue-300 rounded text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100"
+          >
+            <Shield className="h-3 w-3 mr-1" />
+            诊断工具
+          </a>
         </div>
       </div>
 
