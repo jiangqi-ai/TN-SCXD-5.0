@@ -380,10 +380,8 @@ export default function SystemSetupWizard() {
           })
 
           // 使用Promise.race实现超时控制
-          const connectionPromise = testClient
-            .from('settings')
-            .select('count')
-            .limit(1)
+          // 先尝试简单的身份验证测试
+          const connectionPromise = testClient.auth.getSession()
 
           const result = await Promise.race([
             connectionPromise,
@@ -395,6 +393,16 @@ export default function SystemSetupWizard() {
           if (error) {
             console.error(`第${retryCount + 1}次连接尝试失败:`, error.message)
             throw error
+          }
+
+          // 如果身份验证成功，再尝试访问数据库（但避免访问settings表）
+          try {
+            await testClient.from('categories').select('count').limit(1)
+          } catch (dbError: any) {
+            // 如果categories表不存在，这是预期的（数据库还没初始化）
+            if (!dbError.message.includes('relation "categories" does not exist')) {
+              throw dbError
+            }
           }
 
           // 连接成功，保存配置

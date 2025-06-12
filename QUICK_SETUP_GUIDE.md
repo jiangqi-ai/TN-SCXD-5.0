@@ -32,12 +32,15 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
 ### 3. 🗄️ 初始化数据库
 
-在 Supabase Dashboard 中：
+**重要：如果您遇到"infinite recursion detected in policy"错误，请先执行修复脚本！**
 
-1. 进入 **SQL Editor**
-2. 创建新查询
-3. 复制并执行 `database/init-basic-fixed.sql` 的内容
-4. 再复制并执行 `database/init-policies-and-data.sql` 的内容
+在 Supabase Dashboard 的 **SQL Editor** 中按顺序执行：
+
+1. **修复权限策略** - 复制并执行 `database/fix-policies.sql` 的内容
+2. **基础表结构** - 复制并执行 `database/init-basic-fixed.sql` 的内容  
+3. **权限和数据** - 复制并执行 `database/init-policies-and-data.sql` 的内容
+
+**如果已经执行过旧脚本导致递归错误，只需执行第1步修复脚本即可。**
 
 ### 4. 🔄 重启开发服务器
 
