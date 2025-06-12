@@ -155,7 +155,7 @@ export default function QuickConfigPage() {
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Supabase Anon Key
+                      Supabase密钥
                     </label>
                     <textarea
                       value={supabaseKey}
@@ -163,6 +163,9 @@ export default function QuickConfigPage() {
                       placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                       className="w-full p-3 border border-gray-300 rounded h-24 text-sm"
                     />
+                    <p className="text-xs text-gray-500 mt-1">
+                      💡 邀请管理员需要service_role key，在Supabase → Settings → API → service_role (secret) 中获取
+                    </p>
                   </div>
                 </div>
                 
@@ -196,13 +199,33 @@ export default function QuickConfigPage() {
                   />
                 </div>
                 
-                <button
-                  onClick={sendInvite}
-                  disabled={loading || !adminEmail}
-                  className="w-full bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 disabled:opacity-50"
-                >
-                  {loading ? '发送中...' : '发送邀请邮件'}
-                </button>
+                <div className="space-y-3">
+                  <button
+                    onClick={sendInvite}
+                    disabled={loading || !adminEmail}
+                    className="w-full bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 disabled:opacity-50"
+                  >
+                    {loading ? '发送中...' : '发送邀请邮件'}
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      setMessage('✅ 跳过管理员邀请，直接进入系统初始化')
+                      setStep(3)
+                    }}
+                    className="w-full bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600"
+                  >
+                    跳过邀请，稍后手动添加管理员
+                  </button>
+                  
+                  <a 
+                    href="/manual-admin" 
+                    target="_blank"
+                    className="block w-full text-center bg-blue-100 text-blue-700 py-2 px-4 rounded hover:bg-blue-200 text-sm"
+                  >
+                    📖 查看手动创建管理员指南
+                  </a>
+                </div>
               </div>
             )}
 
