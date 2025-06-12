@@ -39,7 +39,7 @@ export function createSupabaseClient(): TypedSupabaseClient {
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true,
-        storageKey: 'supabase.auth.token',
+        storageKey: `supabase.auth.token.${supabaseUrl.split('//')[1]}`,
         storage: typeof window !== 'undefined' ? window.localStorage : undefined,
         flowType: 'pkce'
       }
