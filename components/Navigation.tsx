@@ -8,6 +8,7 @@ import {
   ShoppingCart,
   Users,
   Settings,
+  Activity,
 } from 'lucide-react'
 
 export default function Navigation() {
@@ -43,6 +44,12 @@ export default function Navigation() {
       href: '/admin/settings',
       icon: Settings,
       current: pathname === '/admin/settings'
+    },
+    {
+      name: '系统状态',
+      href: '/status',
+      icon: Activity,
+      current: pathname === '/status'
     }
   ]
 

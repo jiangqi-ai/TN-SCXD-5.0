@@ -14,19 +14,39 @@ export default function AdminSettings() {
   const [storageInfo, setStorageInfo] = useState<StorageInfo | null>(null)
   const [loading, setLoading] = useState(true)
   const [copiedEnv, setCopiedEnv] = useState<string | null>(null)
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null)
 
   useEffect(() => {
     fetchStorageInfo()
   }, [])
 
   const fetchStorageInfo = async () => {
+    console.log('🔄 fetchStorageInfo 函数被调用')
+    setLoading(true)
     try {
-      const response = await fetch('/api/storage-info')
+      console.log('📡 开始发送 API 请求...')
+      const response = await fetch('/api/storage-info', {
+        cache: 'no-store' // 强制重新获取，不使用缓存
+      })
+      console.log('📡 API 响应状态:', response.status)
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
       const data = await response.json()
+      console.log('✅ API 响应数据:', data)
       setStorageInfo(data)
+      setLastUpdated(new Date().toLocaleTimeString())
+      console.log('✅ 存储信息更新完成')
     } catch (error) {
-      console.error('获取存储信息失败:', error)
+      console.error('❌ 获取存储信息失败:', error)
+      setStorageInfo({
+        mode: 'memory',
+        isSupabaseConfigured: false,
+        isSupabaseConnected: false,
+        message: '无法获取存储信息，请检查网络连接'
+      })
     } finally {
+      console.log('🏁 fetchStorageInfo 执行完成')
       setLoading(false)
     }
   }
@@ -350,10 +370,25 @@ export default function AdminSettings() {
                 <p className="text-sm text-gray-600">配置完成后，刷新本页面检查连接状态</p>
               </div>
               <button
-                onClick={fetchStorageInfo}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                onClick={() => {
+                  console.log('🖱️ 重新检测按钮被点击')
+                  fetchStorageInfo()
+                }}
+                disabled={loading}
+                className={`px-4 py-2 rounded-md transition-colors ${
+                  loading 
+                    ? 'bg-gray-400 text-gray-200 cursor-not-allowed' 
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                }`}
               >
-                重新检测
+                {loading ? (
+                  <div className="flex items-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    检测中...
+                  </div>
+                ) : (
+                  '重新检测'
+                )}
               </button>
             </div>
           </div>

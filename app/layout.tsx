@@ -2,6 +2,7 @@ import './globals.css'
 import { Toaster } from 'react-hot-toast'
 import Navigation from '@/components/Navigation'
 import ErrorBoundary from '@/components/ErrorBoundary'
+import StatusIndicator from '@/components/StatusIndicator'
 
 export const metadata = {
   title: '攀岩装备在线订购系统',
@@ -22,6 +23,7 @@ export default function RootLayout({
             {children}
           </main>
           <Toaster />
+          <StatusIndicator />
         </ErrorBoundary>
       </body>
     </html>
