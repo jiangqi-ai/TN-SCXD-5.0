@@ -23,6 +23,42 @@ async function getDbImplementation() {
   }
 }
 
+// 数据库连接测试
+export async function testDatabaseConnection() {
+  const mode = getStorageMode()
+  
+  if (mode === 'supabase') {
+    try {
+      // 测试 Supabase 连接
+      const supabaseDb = await import('./supabase-db')
+      const testResult = await supabaseDb.getProducts()
+      return {
+        success: true,
+        mode: 'supabase',
+        message: 'Supabase 数据库连接成功',
+        productCount: testResult.length
+      }
+    } catch (error) {
+      return {
+        success: false,
+        mode: 'supabase',
+        message: 'Supabase 数据库连接失败',
+        error: error instanceof Error ? error.message : '未知错误'
+      }
+    }
+  } else {
+    // 内存存储总是可用的
+    const memoryDb = await import('./db')
+    const testResult = await memoryDb.getProducts()
+    return {
+      success: true,
+      mode: 'memory',
+      message: '内存数据库连接成功',
+      productCount: testResult.length
+    }
+  }
+}
+
 // 产品相关函数
 export async function getProducts() {
   const db = await getDbImplementation()

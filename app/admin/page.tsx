@@ -33,6 +33,14 @@ export default function AdminDashboard() {
           <h2 className="text-xl font-semibold mb-2">用户管理</h2>
           <p className="text-gray-600">管理用户账户和权限</p>
         </div>
+
+        <div 
+          className="p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer"
+          onClick={() => router.push('/admin/settings')}
+        >
+          <h2 className="text-xl font-semibold mb-2">系统设置</h2>
+          <p className="text-gray-600">配置系统参数和查看运行状态</p>
+        </div>
       </div>
     </div>
   )

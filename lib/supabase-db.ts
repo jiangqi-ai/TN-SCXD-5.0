@@ -309,7 +309,14 @@ export async function createOrder(userId: number, items: Array<{
   if (orderError) throw orderError
   
   // 创建订单项目
-  const orderItems = []
+  const orderItems: Array<{
+    order_id: number
+    product_id: number
+    product_name: string
+    quantity: number
+    price: number
+  }> = []
+  
   for (const item of items) {
     // 获取产品信息
     const product = await getProduct(item.product_id)

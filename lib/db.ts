@@ -74,7 +74,7 @@ let products: Product[] = [
     name: '攀岩鞋',
     description: '专业攀岩鞋，提供优异抓地力。橡胶鞋底设计，适合各种岩面类型。',
     price: 399.99,
-    image_url: 'https://images.unsplash.com/photo-1544966503-7cc5ac882d5f?w=400&h=400&fit=crop',
+    image_url: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=400&fit=crop',
     category: '鞋类',
     stock: 25,
     created_at: new Date().toISOString(),

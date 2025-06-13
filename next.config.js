@@ -1,7 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    domains: ['images.unsplash.com'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+        port: '',
+        pathname: '/**',
+      },
+    ],
   },
   webpack: (config) => {
     config.resolve.fallback = {
@@ -9,6 +16,10 @@ const nextConfig = {
       fs: false,
     };
     return config;
+  },
+  typescript: {
+    // TypeScript 配置
+    ignoreBuildErrors: false,
   },
 }
 
