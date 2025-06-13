@@ -1,12 +1,11 @@
 import './globals.css'
 import { Toaster } from 'react-hot-toast'
 import Navigation from '@/components/Navigation'
-import { AuthProvider } from '@/components/AuthProvider'
 import ErrorBoundary from '@/components/ErrorBoundary'
 
 export const metadata = {
-  title: '攀岩装备商城',
-  description: '专业的攀岩装备在线商城，提供各类攀岩用品和装备。',
+  title: '攀岩装备在线订购系统',
+  description: '一个简单的攀岩装备在线订购系统',
 }
 
 export default function RootLayout({
@@ -15,16 +14,14 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="zh-CN">
-      <body className="font-sans antialiased">
+    <html lang="zh">
+      <body>
         <ErrorBoundary>
-          <AuthProvider>
-            <Navigation />
-            <Toaster position="top-center" />
-            <main className="min-h-screen pt-16">
-              {children}
-            </main>
-          </AuthProvider>
+          <Navigation />
+          <main className="container mx-auto px-4 py-8">
+            {children}
+          </main>
+          <Toaster />
         </ErrorBoundary>
       </body>
     </html>

@@ -1,6 +1,3 @@
 {
-  "/page": "app/page.js",
-  "/manual-admin/page": "app/manual-admin/page.js",
-  "/not-found": "app/not-found.js",
-  "/auth/login/page": "app/auth/login/page.js"
+  "/page": "app/page.js"
 }

@@ -1,0 +1,11 @@
+# Supabase Configuration - 复制为 .env.local
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+
+# 使用说明:
+# 1. 复制此文件内容到 .env.local
+# 2. 注册 Supabase 账户: https://supabase.com
+# 3. 创建新项目
+# 4. 在项目设置中找到 API Keys 和 URL
+# 5. 替换上面的占位符为实际值 

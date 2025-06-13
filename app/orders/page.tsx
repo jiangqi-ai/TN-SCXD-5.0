@@ -1,47 +1,30 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { useAuth } from '@/components/AuthProvider'
-import { createSupabaseClient } from '@/lib/supabase'
-import { Package, Calendar, CreditCard, Truck } from 'lucide-react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-
-interface Order {
-  id: string
-  order_number: string
-  total_amount: number
-  status: string
-  created_at: string
-  shipping_name: string
-  shipping_address: string
-}
+import { Order } from '@/types/database'
 
 export default function OrdersPage() {
-  const { user } = useAuth()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (user) {
-      fetchOrders()
-    }
-  }, [user])
+    fetchOrders()
+  }, [])
 
   const fetchOrders = async () => {
     try {
-      const supabase = createSupabaseClient()
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('user_id', user?.id)
-        .order('created_at', { ascending: false })
-
-      if (error) throw error
-      setOrders(data || [])
-    } catch (err: any) {
-      console.error('获取订单失败:', err)
-      setError('获取订单失败，请稍后重试')
+      setLoading(true)
+      setError(null)
+      const response = await fetch('/api/orders')
+      if (!response.ok) {
+        throw new Error('获取订单列表失败')
+      }
+      const data = await response.json()
+      setOrders(data)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '获取订单列表失败')
     } finally {
       setLoading(false)
     }
@@ -49,164 +32,109 @@ export default function OrdersPage() {
 
   const getStatusText = (status: string) => {
     const statusMap: { [key: string]: string } = {
-      pending: '待确认',
-      confirmed: '已确认',
+      pending: '待处理',
       processing: '处理中',
       shipped: '已发货',
       delivered: '已送达',
-      cancelled: '已取消',
-      refunded: '已退款'
+      cancelled: '已取消'
     }
     return statusMap[status] || status
   }
 
   const getStatusColor = (status: string) => {
     const colorMap: { [key: string]: string } = {
-      pending: 'bg-yellow-100 text-yellow-800',
-      confirmed: 'bg-blue-100 text-blue-800',
-      processing: 'bg-purple-100 text-purple-800',
-      shipped: 'bg-green-100 text-green-800',
-      delivered: 'bg-green-100 text-green-800',
-      cancelled: 'bg-red-100 text-red-800',
-      refunded: 'bg-gray-100 text-gray-800'
+      pending: 'text-yellow-600 bg-yellow-100',
+      processing: 'text-blue-600 bg-blue-100',
+      shipped: 'text-purple-600 bg-purple-100',
+      delivered: 'text-green-600 bg-green-100',
+      cancelled: 'text-red-600 bg-red-100'
     }
-    return colorMap[status] || 'bg-gray-100 text-gray-800'
-  }
-
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-gray-50 pt-20">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center">
-            <Package className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">请先登录</h1>
-            <p className="text-gray-600 mb-8">您需要登录后才能查看订单</p>
-            <Link
-              href="/auth/login"
-              className="inline-flex items-center px-6 py-3 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-primary-600 hover:bg-primary-700"
-            >
-              立即登录
-            </Link>
-          </div>
-        </div>
-      </div>
-    )
+    return colorMap[status] || 'text-gray-600 bg-gray-100'
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 pt-20">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">加载订单中...</p>
-          </div>
-        </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 pt-20">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center">
-            <Package className="h-16 w-16 text-red-400 mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">加载失败</h1>
-            <p className="text-gray-600 mb-8">{error}</p>
-            <button
-              onClick={fetchOrders}
-              className="inline-flex items-center px-6 py-3 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-primary-600 hover:bg-primary-700"
-            >
-              重试
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  if (orders.length === 0) {
-    return (
-      <div className="min-h-screen bg-gray-50 pt-20">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center">
-            <Package className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">暂无订单</h1>
-            <p className="text-gray-600 mb-8">您还没有任何订单记录</p>
-            <Link
-              href="/products"
-              className="inline-flex items-center px-6 py-3 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-primary-600 hover:bg-primary-700"
-            >
-              开始购物
-            </Link>
-          </div>
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <div className="text-red-600 mb-4">{error}</div>
+          <button
+            onClick={fetchOrders}
+            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+          >
+            重试
+          </button>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-20">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">我的订单</h1>
-          <p className="text-gray-600">共 {orders.length} 个订单</p>
-        </div>
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold">我的订单</h1>
+        <Link
+          href="/products"
+          className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+        >
+          继续购物
+        </Link>
+      </div>
 
+      {orders.length === 0 ? (
+        <div className="text-center py-12">
+          <div className="text-gray-500 mb-4">暂无订单</div>
+          <Link
+            href="/products"
+            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+          >
+            去购物
+          </Link>
+        </div>
+      ) : (
         <div className="space-y-6">
           {orders.map((order) => (
-            <div key={order.id} className="bg-white rounded-lg shadow-sm border border-gray-200">
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center space-x-4">
-                    <Package className="h-6 w-6 text-gray-400" />
-                    <div>
-                      <h3 className="text-lg font-medium text-gray-900">
-                        订单号: {order.order_number}
-                      </h3>
-                      <div className="flex items-center space-x-4 text-sm text-gray-600">
-                        <div className="flex items-center">
-                          <Calendar className="h-4 w-4 mr-1" />
-                          {new Date(order.created_at).toLocaleDateString('zh-CN')}
-                        </div>
-                        <div className="flex items-center">
-                          <CreditCard className="h-4 w-4 mr-1" />
-                          ¥{order.total_amount.toFixed(2)}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(order.status)}`}>
-                    {getStatusText(order.status)}
-                  </span>
+            <div key={order.id} className="bg-white rounded-lg shadow-md p-6">
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h3 className="text-lg font-semibold">订单号: {order.id}</h3>
+                  <p className="text-gray-600">
+                    下单时间: {new Date(order.created_at).toLocaleString()}
+                  </p>
                 </div>
+                <span
+                  className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(
+                    order.status
+                  )}`}
+                >
+                  {getStatusText(order.status)}
+                </span>
+              </div>
 
-                <div className="border-t border-gray-200 pt-4">
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Truck className="h-4 w-4 mr-2" />
-                    <span>收货人: {order.shipping_name}</span>
-                    <span className="mx-2">|</span>
-                    <span>收货地址: {order.shipping_address}</span>
+              <div className="border-t pt-4">
+                <div className="flex justify-between items-center">
+                  <div className="text-lg font-semibold">
+                    总金额: ¥{order.total_amount}
                   </div>
-                </div>
-
-                <div className="mt-4 flex justify-end">
-                  <button
-                    className="px-4 py-2 text-sm font-medium text-primary-600 hover:text-primary-700"
-                    onClick={() => {
-                      // TODO: 实现订单详情功能
-                      alert('订单详情功能待实现')
-                    }}
+                  <Link
+                    href={`/orders/${order.id}`}
+                    className="px-4 py-2 border border-blue-500 text-blue-500 rounded-md hover:bg-blue-50"
                   >
                     查看详情
-                  </button>
+                  </Link>
                 </div>
               </div>
             </div>
           ))}
         </div>
-      </div>
+      )}
     </div>
   )
 } 

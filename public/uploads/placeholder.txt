@@ -1,0 +1,8 @@
+This directory contains uploaded product images.
+
+Sample images referenced in the demo:
+- climbing-rope.jpg
+- climbing-helmet.jpg  
+- climbing-shoes.jpg
+
+These are placeholder references for the demo application. 
