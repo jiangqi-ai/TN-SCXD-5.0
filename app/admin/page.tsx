@@ -39,7 +39,23 @@ export default function AdminDashboard() {
           onClick={() => router.push('/admin/settings')}
         >
           <h2 className="text-xl font-semibold mb-2">系统设置</h2>
-          <p className="text-gray-600">配置系统参数和查看运行状态</p>
+          <p className="text-gray-600">配置系统参数和数据库连接</p>
+        </div>
+
+        <div 
+          className="p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer border-2 border-blue-200 bg-blue-50"
+          onClick={() => router.push('/admin/deployment')}
+        >
+          <h2 className="text-xl font-semibold mb-2 text-blue-800">生产部署</h2>
+          <p className="text-blue-600">管理应用构建、部署和生产环境</p>
+        </div>
+
+        <div 
+          className="p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer"
+          onClick={() => router.push('/status')}
+        >
+          <h2 className="text-xl font-semibold mb-2">系统状态</h2>
+          <p className="text-gray-600">实时监控系统运行状态</p>
         </div>
       </div>
     </div>

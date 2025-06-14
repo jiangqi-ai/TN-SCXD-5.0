@@ -9,6 +9,7 @@ import {
   Users,
   Settings,
   Activity,
+  Upload,
 } from 'lucide-react'
 
 export default function Navigation() {
@@ -44,6 +45,12 @@ export default function Navigation() {
       href: '/admin/settings',
       icon: Settings,
       current: pathname === '/admin/settings'
+    },
+    {
+      name: '生产部署',
+      href: '/admin/deployment',
+      icon: Upload,
+      current: pathname === '/admin/deployment'
     },
     {
       name: '系统状态',
